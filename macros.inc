@@ -1,12 +1,3 @@
-    MACRO neg8 reg
-; reg - value
-; Output:
-; reg=-value
-        XOR A
-        SUB reg
-        LD reg,A
-    ENDM
-
     MACRO neg16 reg_hi,reg_lo
 ; reg_hi,reg_lo - value
 ; Output:

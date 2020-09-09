@@ -1,29 +1,62 @@
-    DEVICE ZXSPECTRUM48
+                    DEVICE ZXSPECTRUM48
 
-    ORG #8000
+                    ORG #8000
+
+code
+                    INCLUDE "macros.inc"
+;                    INCLUDE "models.inc"
+
+                    DI
+
+                    XOR A
+                    LD A,2
+                    OUT (254),A
+
+                    LD B,24
+                    LD D,0
+                    LD HL,#4000
+                    CALL mem.fill
+
+                    LD B,3
+                    LD D,64+5
+                    CALL mem.fill
+
+                    LD B,50
+                    LD C,25
+                    CALL draw2D.draw_point
+
+                    DI
+                    HALT
 
 
-screen_buffer EQU #C000 ; hack
+                    INCLUDE "mem.asm"
+                    INCLUDE "muldiv.asm"
+                    INCLUDE "misc.asm"
+                    INCLUDE "draw2D.asm"
+;                    INCLUDE "draw3D.asm"
+
+code_size           EQU $-code
 
 
-code:
-    INCLUDE "macros.inc"
-    INCLUDE "models.inc"
+                    ALIGN 256
+data
+                    INCLUDE "screen_table.dat"
+                    INCLUDE "muldiv.dat"
+                    INCLUDE "sincos.dat"
+;                    INCLUDE "draw2D.dat"
+;                    INCLUDE "draw3D.dat"
+data_size           EQU $-data
 
-    DI
 
-    XOR A
-    OUT (254),A
+                    DISPLAY "Size: ",/D,$-code
+                    DISPLAY "Code: ",/D,code_size
+                    DISPLAY "Data: ",/D,data_size
 
-    LD B,24
-    LD D,0
-    LD HL,#4000
-    CALL mem.fill
+                    SAVESNA "c:/tools/unreal/qsave1.sna", code
+                    LABELSLIST "c:/tools/unreal/user.l"
 
-    LD B,3
-    LD D,64+5
-    CALL mem.fill
 
+;screen_buffer EQU #C000 ; hack
 /*
 ;    LD A,2
 ;    OUT (254),A
@@ -70,10 +103,6 @@ code:
     LD A,1
     OUT (254),A
 */
-
-    DI
-    HALT
-
 /*
 .model:
     box 100,100,100,.solid,.solid,.checkerboard_2x2,.rabica,.checkerboard,.checkerboard
@@ -135,28 +164,3 @@ code:
     BYTE %00111000
     BYTE %00000000
 */
-
-
-    INCLUDE "mem.asm"
-    INCLUDE "muldiv.asm"
-    INCLUDE "misc.asm"
-;    INCLUDE "draw2D.asm"
-;    INCLUDE "draw3D.asm"
-code_size = $-code
-
-    ALIGN 256
-data:
-    INCLUDE "screen_table.dat"
-    INCLUDE "muldiv.dat"
-    INCLUDE "sincos.dat"
-;    INCLUDE "draw2D.dat"
-;    INCLUDE "draw3D.dat"
-data_size = $-data
-
-
-    DISPLAY "Size: ",/D,$-code
-    DISPLAY "Code: ",/D,code_size
-    DISPLAY "Data: ",/D,data_size
-
-    SAVESNA "c:/tools/unreal/qsave1.sna", code
-    LABELSLIST "c:/tools/unreal/user.l"

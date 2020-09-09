@@ -1,6 +1,44 @@
-/*
-    MODULE draw2D
+                    MODULE draw2D
 
+draw_point
+; B - x
+; C - y
+                    LD H,HIGH(screen_table)
+                    LD L,C
+                    LD E,(HL)
+                    INC H
+                    LD D,(HL)
+                    ; DE = line_address
+
+                    LD A,7
+                    AND B
+                    LD C,A ; store C = x & 7
+
+                    LD HL,.masks
+                    ADD L
+                    LD L,A
+                    ; HL = mask_address
+
+                    LD A,B
+                    XOR C
+                    RRA
+                    RRA
+                    RRA
+                    ADD E
+                    LD E,A
+                    ; DE += (x >> 3)
+
+                    LD A,(DE)
+                    OR (HL)
+                    LD (DE),A
+
+                    RET
+
+                    ALIGN 8
+.masks              BYTE %10000000, %01000000, %00100000, %00010000, %00001000, %00000100, %00000010, %00000001
+
+                    ENDMODULE
+/*
 polygon_fill:
 ; B  - count
 ; HL - coords (array [x1,y1,x2,y2...xn,yn] clockwise)
@@ -512,6 +550,4 @@ _horz_line:
 
     draw_byte ; drawing single byte
     RET
-
-    ENDMODULE
 */
