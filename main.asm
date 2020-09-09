@@ -22,8 +22,22 @@ code
                     CALL mem.fill
 
                     LD B,50
-                    LD C,25
-                    CALL draw2D.draw_point
+                    LD C,50
+                    LD D,200
+                    LD E,150
+                    CALL draw2DEX.set_viewport
+
+                    LD BC,0
+                    LD DE,0
+1                   PUSH BC
+                    PUSH DE
+                    CALL draw2DEX.draw_point
+                    POP DE
+                    POP BC
+                    INC BC
+                    INC BC
+                    INC DE
+                    JP 1B
 
                     DI
                     HALT
@@ -33,6 +47,7 @@ code
                     INCLUDE "muldiv.asm"
                     INCLUDE "misc.asm"
                     INCLUDE "draw2D.asm"
+                    INCLUDE "draw2DEX.asm"
 ;                    INCLUDE "draw3D.asm"
 
 code_size           EQU $-code

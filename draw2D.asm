@@ -1,36 +1,35 @@
                     MODULE draw2D
 
 draw_point
-; B - x
-; C - y
+; DE - x, y
                     LD H,HIGH(screen_table)
-                    LD L,C
-                    LD E,(HL)
+                    LD L,E
+                    LD C,(HL)
                     INC H
-                    LD D,(HL)
-                    ; DE = line_address
+                    LD B,(HL)
+                    ; BC = line_address
 
                     LD A,7
-                    AND B
-                    LD C,A ; store C = x & 7
+                    AND D
+                    LD E,A ; store E = x & 7
 
                     LD HL,.masks
                     ADD L
                     LD L,A
                     ; HL = mask_address
 
-                    LD A,B
-                    XOR C
+                    LD A,D
+                    XOR E
                     RRA
                     RRA
                     RRA
-                    ADD E
-                    LD E,A
-                    ; DE += (x >> 3)
+                    ADD C
+                    LD C,A
+                    ; BC += (x >> 3)
 
-                    LD A,(DE)
+                    LD A,(BC)
                     OR (HL)
-                    LD (DE),A
+                    LD (BC),A
 
                     RET
 
