@@ -1,3 +1,4 @@
+/*
     MODULE draw2D
 
     ALIGN 256
@@ -7,3 +8,4 @@ _x_max:
     BLOCK 256
 
     ENDMODULE
+*/

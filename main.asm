@@ -24,6 +24,7 @@ code:
     LD D,64+5
     CALL mem.fill
 
+/*
 ;    LD A,2
 ;    OUT (254),A
 
@@ -68,10 +69,12 @@ code:
 
     LD A,1
     OUT (254),A
+*/
 
     DI
     HALT
 
+/*
 .model:
     box 100,100,100,.solid,.solid,.checkerboard_2x2,.rabica,.checkerboard,.checkerboard
 ;    box 100,100,100,#3D88,#3D90,#3D98,#3DA0,#3DA8,#3DB0
@@ -131,13 +134,14 @@ code:
     BYTE %01000100
     BYTE %00111000
     BYTE %00000000
+*/
 
 
     INCLUDE "mem.asm"
     INCLUDE "muldiv.asm"
     INCLUDE "misc.asm"
-    INCLUDE "draw2D.asm"
-    INCLUDE "draw3D.asm"
+;    INCLUDE "draw2D.asm"
+;    INCLUDE "draw3D.asm"
 code_size = $-code
 
     ALIGN 256
@@ -145,8 +149,8 @@ data:
     INCLUDE "screen_table.dat"
     INCLUDE "muldiv.dat"
     INCLUDE "sincos.dat"
-    INCLUDE "draw2D.dat"
-    INCLUDE "draw3D.dat"
+;    INCLUDE "draw2D.dat"
+;    INCLUDE "draw3D.dat"
 data_size = $-data
 
 

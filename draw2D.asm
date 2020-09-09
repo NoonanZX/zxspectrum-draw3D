@@ -1,3 +1,4 @@
+/*
     MODULE draw2D
 
 polygon_fill:
@@ -513,3 +514,4 @@ _horz_line:
     RET
 
     ENDMODULE
+*/
