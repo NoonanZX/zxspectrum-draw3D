@@ -10,6 +10,7 @@ y_max               EQU test_point.y_max ; default = 191
 set_viewport
 ; BC - x_min, y_min
 ; DE - x_max, y_max
+; Preserves ALL except A
                     LD A,B
                     LD (x_min),A                    
                     LD A,C
@@ -27,10 +28,11 @@ test_point
 ; DE - y
 ; Output:
 ; CF = (x < x_min) || (x > x_max) || (y < y_min) || (y > y_max)
+; Preserves ALL except A
                     XOR A
-                    SUB B
+                    CP B
                     RET C ; CF = (x < 0) || (x > 255)
-                    SUB D
+                    CP D
                     RET C ; CF = (y < 0) || (y > 255)
 
                     LD A,191

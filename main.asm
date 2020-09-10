@@ -9,7 +9,7 @@ code
                     DI
 
                     XOR A
-                    LD A,2
+;                    LD A,2
                     OUT (254),A
 
                     LD B,24
@@ -21,23 +21,71 @@ code
                     LD D,64+5
                     CALL mem.fill
 
-                    LD B,50
-                    LD C,50
-                    LD D,200
-                    LD E,150
-                    CALL draw2DEX.set_viewport
+                    MACRO test_line dx, dy
+                        LD DE,100+100*256
+                        LD HL,(100+dx)+(100+dy)*256
+                        CALL draw2D.draw_line
+                    ENDM
 
-                    LD BC,0
-                    LD DE,0
-1                   PUSH BC
-                    PUSH DE
-                    CALL draw2DEX.draw_point
-                    POP DE
-                    POP BC
-                    INC BC
-                    INC BC
-                    INC DE
-                    JP 1B
+                    test_line -50,-50
+                    test_line -50,-25
+                    test_line -50,0
+                    test_line -50,+25
+                    test_line -50,+50
+                    test_line -25,-50
+                    test_line -25,-25
+                    test_line -25,0
+                    test_line -25,+25
+                    test_line -25,+50
+                    test_line 0,-50
+                    test_line 0,-25
+                    test_line 0,0
+                    test_line 0,+25
+                    test_line 0,+50
+                    test_line +25,-50
+                    test_line +25,-25
+                    test_line +25,0
+                    test_line +25,+25
+                    test_line +25,+50
+                    test_line +50,-50
+                    test_line +50,-25
+                    test_line +50,0
+                    test_line +50,+25
+                    test_line +50,+50
+
+                    MACRO test_horz_line x1, x2, y
+                        LD D,x1
+                        LD E,y
+                        LD H,x2
+                        CALL draw2D.draw_horizontal_line
+                    ENDM
+
+                    test_horz_line 225-8, 225+8, 155-8
+                    test_horz_line 225-6, 225+6, 155-6
+                    test_horz_line 225-4, 225+4, 155-4
+                    test_horz_line 225-2, 225+2, 155-2
+                    test_horz_line 225, 225, 155
+                    test_horz_line 225+2, 225-2, 155+2
+                    test_horz_line 225+4, 225-4, 155+4
+                    test_horz_line 225+6, 225-6, 155+6
+                    test_horz_line 225+8, 225-8, 155+8
+
+                    MACRO test_vert_line x, y1, y2
+                        LD D,x
+                        LD E,y1
+                        LD L,y2
+                        CALL draw2D.draw_vertical_line
+                    ENDM
+
+                    test_vert_line 225-8, 50-8, 50+8
+                    test_vert_line 225-6, 50-6, 50+6
+                    test_vert_line 225-4, 50-4, 50+4
+                    test_vert_line 225-2, 50-2, 50+2
+                    test_vert_line 225, 50, 50
+                    test_vert_line 225+2, 50+2, 50-2
+                    test_vert_line 225+4, 50+4, 50-4
+                    test_vert_line 225+6, 50+6, 50-6
+                    test_vert_line 225+8, 50+8, 50-8
 
                     DI
                     HALT
