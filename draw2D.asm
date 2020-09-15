@@ -139,8 +139,7 @@ draw_line
                     ; L - dy = y2 - y1
                     ; D - x = x1
                     ; E - y = y1
-                    ; Special:
-                    ; Makes RET!
+                    ; Special: Makes RET!
                         _draw2D_draw_line_init
                         LD A,H
                         RRA ; A = dx / 2

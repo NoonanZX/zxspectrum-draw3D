@@ -9,7 +9,7 @@ code
                     DI
 
                     XOR A
-;                    LD A,2
+                    LD A,2
                     OUT (254),A
 
                     LD B,24
@@ -21,74 +21,87 @@ code
                     LD D,64+5
                     CALL mem.fill
 
-                    MACRO test_line dx, dy
-                        LD DE,100+100*256
-                        LD HL,(100+dx)+(100+dy)*256
-                        CALL draw2D.draw_line
+x_min               EQU 50
+x_max               EQU 150
+y_min               EQU 50
+y_max               EQU 150
+
+                    LD B,x_min
+                    LD C,y_min
+                    LD D,x_max
+                    LD E,y_max
+                    CALL draw2DEX.set_viewport
+
+                    ;CALL draw_axis
+                    CALL draw_viewport
+
+                    MACRO test_line x1, y1, x2, y2
+                        LD BC,x1
+                        LD DE,y1
+                        EXX
+                        LD BC,x2
+                        LD DE,y2
+                        EXX
+                        CALL draw2DEX.draw_line
                     ENDM
 
-                    test_line -50,-50
-                    test_line -50,-25
-                    test_line -50,0
-                    test_line -50,+25
-                    test_line -50,+50
-                    test_line -25,-50
-                    test_line -25,-25
-                    test_line -25,0
-                    test_line -25,+25
-                    test_line -25,+50
-                    test_line 0,-50
-                    test_line 0,-25
-                    test_line 0,0
-                    test_line 0,+25
-                    test_line 0,+50
-                    test_line +25,-50
-                    test_line +25,-25
-                    test_line +25,0
-                    test_line +25,+25
-                    test_line +25,+50
-                    test_line +50,-50
-                    test_line +50,-25
-                    test_line +50,0
-                    test_line +50,+25
-                    test_line +50,+50
-
-                    MACRO test_horz_line x1, x2, y
-                        LD D,x1
-                        LD E,y
-                        LD H,x2
-                        CALL draw2D.draw_horizontal_line
-                    ENDM
-
-                    test_horz_line 225-8, 225+8, 155-8
-                    test_horz_line 225-6, 225+6, 155-6
-                    test_horz_line 225-4, 225+4, 155-4
-                    test_horz_line 225-2, 225+2, 155-2
-                    test_horz_line 225, 225, 155
-                    test_horz_line 225+2, 225-2, 155+2
-                    test_horz_line 225+4, 225-4, 155+4
-                    test_horz_line 225+6, 225-6, 155+6
-                    test_horz_line 225+8, 225-8, 155+8
-
-                    MACRO test_vert_line x, y1, y2
-                        LD D,x
-                        LD E,y1
-                        LD L,y2
-                        CALL draw2D.draw_vertical_line
-                    ENDM
-
-                    test_vert_line 225-8, 50-8, 50+8
-                    test_vert_line 225-6, 50-6, 50+6
-                    test_vert_line 225-4, 50-4, 50+4
-                    test_vert_line 225-2, 50-2, 50+2
-                    test_vert_line 225, 50, 50
-                    test_vert_line 225+2, 50+2, 50-2
-                    test_vert_line 225+4, 50+4, 50-4
-                    test_vert_line 225+6, 50+6, 50-6
-                    test_vert_line 225+8, 50+8, 50-8
+                    test_line x_min-25, y_min+50, x_min-15, y_max+25 ; not visible
+                    test_line x_max-25, y_max+15, x_min+25, y_max+25 ; not visible
+                    test_line x_min-25, y_min+25, x_max+25, y_max-25
+                    test_line x_max-25, y_max+25, x_min+25, y_min-25
+                    test_line x_min+25, y_min+25, x_max-50, y_min+35
+                    test_line 0, 96, 256, 96
+                    test_line 128, -256, 128, +256
 
                     DI
                     HALT
+
+
+draw_axis
+                    LD DE,#0060
+                    LD HL,#FF60
+                    CALL draw2D.draw_horizontal_line
+                    LD DE,#8000
+                    LD HL,#80C0
+                    JP draw2D.draw_vertical_line
+
+                    
+draw_viewport
+                    LD A,(draw2DEX.x_min)
+                    LD D,A
+                    LD A,(draw2DEX.y_min)
+                    INC A
+                    LD E,A
+                    LD A,(draw2DEX.x_max)
+                    LD H,A
+                    CALL draw2D.draw_horizontal_line
+
+                    LD A,(draw2DEX.x_min)
+                    LD D,A
+                    LD A,(draw2DEX.y_max)
+                    DEC A
+                    LD E,A
+                    LD A,(draw2DEX.x_max)
+                    LD H,A
+                    CALL draw2D.draw_horizontal_line
+
+                    LD A,(draw2DEX.x_min)
+                    INC A
+                    LD D,A
+                    LD A,(draw2DEX.y_min)
+                    LD E,A
+                    LD A,(draw2DEX.y_max)
+                    LD L,A
+                    CALL draw2D.draw_vertical_line
+
+                    LD A,(draw2DEX.x_max)
+                    DEC A
+                    LD D,A
+                    LD A,(draw2DEX.y_min)
+                    LD E,A
+                    LD A,(draw2DEX.y_max)
+                    LD L,A
+                    JP draw2D.draw_vertical_line
 
 
                     INCLUDE "mem.asm"
