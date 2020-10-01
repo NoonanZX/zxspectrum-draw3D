@@ -1,12 +1,19 @@
-/*
-    MODULE draw3D
+                    MODULE draw3D
 
+                    ALIGN 256
+_vertex_screen_pos
+_vertex_screen_x
+_vertex_screen_x_lo BLOCK 256
+_vertex_screen_x_hi BLOCK 256
+_vertex_screen_y
+_vertex_screen_y_lo BLOCK 256
+_vertex_screen_y_hi BLOCK 256
+
+                    ENDMODULE
+
+/* TODO
     ALIGN 256
-_projected:
-    BLOCK 256 ; x
-    BLOCK 256 ; y
 _polygon:
     BLOCK 256 ; xy
 
-    ENDMODULE
 */

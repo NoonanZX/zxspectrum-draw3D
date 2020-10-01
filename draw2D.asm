@@ -2,7 +2,7 @@
 
 draw_point
 ; DE - x, y
-; Preserves IX, IY, EX.
+; Preserves IX, IY, ALL'.
                     LD H,HIGH(screen_table)
                     LD L,E
                     LD C,(HL)
@@ -208,7 +208,7 @@ draw_line
                     ; H = dx = x2 - x1
                     ; L = dy = y2 - y1
 
-                    CCF
+                    SCF
                     SBC C
                     JP C,.left_to_right_by_y
 .left_to_right_by_x _draw2D_draw_line_by_x INC, RRC
@@ -232,7 +232,7 @@ draw_horizontal_line
 ; D - x1
 ; H - x2
 ; E - y
-; Preserves IX, IY, EX.
+; Preserves IX, IY, ALL'.
                     LD A,D
                     CP H
                     JP C,draw_horizontal_line_nocheck
@@ -336,7 +336,7 @@ draw_vertical_line
 ; D - x
 ; E - y1
 ; L - y2
-; Preserves IX, IY, EX.
+; Preserves IX, IY, ALL'.
                     LD A,E
                     CP L
                     JP C,draw_vertical_line_nocheck
@@ -392,7 +392,7 @@ draw_vertical_line_nocheck
                     RET
 
                     ENDMODULE
-/*
+/* TODO
 _horz_line:
 ; DE - x2, x1
 ; L  - y
@@ -648,8 +648,7 @@ _polygon_write:
 
     RET
 .return_error:
-    OR A
-    CCF ; is_invisible=true
+    SCF
     RET
     
     

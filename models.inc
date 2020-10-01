@@ -1,3 +1,5 @@
+; TODO - Delete.
+
     MACRO box size_x,size_y,size_z,front,back,top,bottom,left,right
         BYTE 8
             BYTE -size_x/2,-size_y/2,-size_z/2

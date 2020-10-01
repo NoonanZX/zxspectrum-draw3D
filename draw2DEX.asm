@@ -57,6 +57,7 @@ test_point
 
 
 clip_line
+; TODO: Review.
 ; Clips line |(x1, y1) - (x2, y2)| against viewport.
 ; BC - x1
 ; DE - y1
@@ -65,7 +66,7 @@ clip_line
 ; Output:
 ; |(BC,  DE) - (BC', DE')| - part of line that is inside viewport,
 ; or
-; CF = 1 if line is outside of viewport
+; CF = 1 if line is completely outside of viewport.
                     EXX
                     CALL clip_line_begin
                     RET C
@@ -74,13 +75,14 @@ clip_line
 
 
 clip_line_begin
+; TODO: Review.
 ; BC - x1
 ; DE - y1
 ; BC' - x2
 ; DE' - y2
 ; Output:
 ; BC, DE = new_x, new_y - first point on line |(x1, y1) - (x2, y2)| inside viewport, or
-; CF = 1 if not found
+; CF = 1 if not found.
 ; Preserves BC', DE'.
                     CALL test_point
                     RET NC
@@ -103,7 +105,7 @@ clip_line_begin_nocheck
                     ; HL = x2 - x1
 
                     MACRO _clip_line_begin_AtoHL sign
-                    ; HL = A
+                    ; HL = sign * A
                     ; CF = 0
                         IF sign >= 0
                             LD L,A
@@ -136,15 +138,6 @@ clip_line_begin_nocheck
                         ENDIF
                     ENDM
 
-                    MACRO _clip_line_begin_adcsbc sign, arg1, arg2
-                        ; arg1 += sign * args
-                        IF sign >= 0
-                        ADC arg1, arg2
-                        ELSE
-                        SBC arg1, arg2
-                        ENDIF
-                    ENDM
-
                     MACRO _clip_line_begin dir_x, dir_y
                     ; dir_x = sign(x2 - x1) if (x1 != x2) else +/-1
                     ; dir_y = sign(y2 - y1) if (y1 != y2) else +/-1
@@ -168,7 +161,7 @@ clip_line_begin_nocheck
                         LD A,(x_min)
                         ENDIF
                         _clip_line_begin_AtoHL dir_x
-                        _clip_line_begin_adcsbc -dir_x, HL, BC
+                        selop2 dir_x<0, ADC, SBC, HL, BC
                         JP M,.outside_of_viewport
 
                         ; calculating x_to_border = distance from x1 to nearest viewport border
@@ -178,7 +171,7 @@ clip_line_begin_nocheck
                         LD A,(x_max)
                         ENDIF
                         _clip_line_begin_AtoHL dir_x
-                        _clip_line_begin_adcsbc -dir_x, HL, BC
+                        selop2 dir_x<0, ADC, SBC, HL, BC
                         JP M,1F ; if (x_to_border < 0) jump
 
                         _clip_line_begin_HLtoA +1, .outside_of_viewport
@@ -195,7 +188,7 @@ clip_line_begin_nocheck
                         LD A,(y_min)
                         ENDIF
                         _clip_line_begin_AtoHL dir_y
-                        _clip_line_begin_adcsbc -dir_y, HL, DE
+                        selop2 dir_y<0, ADC, SBC, HL, DE
                         JP M,.outside_of_viewport
 
                         ; calculating y_to_border = distance from y1 to nearest viewport border
@@ -205,7 +198,7 @@ clip_line_begin_nocheck
                         LD A,(y_max)
                         ENDIF
                         _clip_line_begin_AtoHL dir_y
-                        _clip_line_begin_adcsbc -dir_y, HL, DE
+                        selop2 dir_y<0, ADC, SBC, HL, DE
                         JP M,2F ; if (y_to_border < 0) jump
 
                         _clip_line_begin_HLtoA +1, .outside_of_viewport
@@ -236,8 +229,8 @@ clip_line_begin_nocheck
                         ELSE
                             EX DE,HL
                             SBC HL,DE
-                            OR A
                         ENDIF
+                        OR A
                         EX HL,DE
                         ; y1 += offset_y
 
@@ -251,8 +244,8 @@ clip_line_begin_nocheck
                             LD B,0
                             LD C,A
                             SBC HL,BC
-                            OR A
                         ENDIF
+                        OR A
                         LD B,H
                         LD C,L
                         ; x1 += offet_x
@@ -285,7 +278,7 @@ clip_line_begin_nocheck
                     JP C,.by_y
 .by_x               ; dx >= dy
                     RRA ; A = dx / 2
-                    JP $+3
+                    JP $+4
 1                   EX AF,AF'
                     ADD E ; A += dy
                     JR C,2F ; if (A > 256) jump
@@ -303,13 +296,13 @@ clip_line_begin_nocheck
                     RET NC ; if (x >= xc) return
 4                   CP D ; x <=> dx
                     JP C,1B ; if (x < dx) jump
-                    CCF ; CF = 1
+                    SCF
                     RET ; not found
 .by_y               ; dx < dy
                     SUB D
                     ADD E
                     RRA ; A = dy / 2
-                    JP $+3
+                    JP $+4
 1                   EX AF,AF'
                     ADD D ; A += dx
                     JR C,2F ; if (A > 256) jump
@@ -327,7 +320,7 @@ clip_line_begin_nocheck
                     RET NC ; if (y >= yc) return
 4                   CP E ; y <=> dy
                     JP C,1B ; if (y < dy) jump
-                    CCF ; CF = 1
+                    SCF
                     RET ; not found
 
 .split_line_reverse EXX
@@ -390,15 +383,14 @@ clip_line_begin_nocheck
                     RET NC ; on success
                     JP clip_line_begin_nocheck
 .outside_of_viewport
-                    OR A
-                    CCF
+                    SCF
                     RET
 
 
 draw_point
 ; BC - x
 ; DE - y
-; Preserves IX, IY, EX.
+; Preserves IX, IY, ALL'.
                     CALL test_point
                     RET C
 

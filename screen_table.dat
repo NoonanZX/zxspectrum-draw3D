@@ -29,29 +29,29 @@ screen_table:
 
 	ALIGN 256
 
-	BYTE #57,#56,#55,#54,#53,#52,#51,#50
-	BYTE #57,#56,#55,#54,#53,#52,#51,#50
-	BYTE #57,#56,#55,#54,#53,#52,#51,#50
-	BYTE #57,#56,#55,#54,#53,#52,#51,#50
-	BYTE #57,#56,#55,#54,#53,#52,#51,#50
-	BYTE #57,#56,#55,#54,#53,#52,#51,#50
-	BYTE #57,#56,#55,#54,#53,#52,#51,#50
-	BYTE #57,#56,#55,#54,#53,#52,#51,#50
+	BYTE HIGH(screen)+#17,HIGH(screen)+#16,HIGH(screen)+#15,HIGH(screen)+#14,HIGH(screen)+#13,HIGH(screen)+#12,HIGH(screen)+#11,HIGH(screen)+#10
+	BYTE HIGH(screen)+#17,HIGH(screen)+#16,HIGH(screen)+#15,HIGH(screen)+#14,HIGH(screen)+#13,HIGH(screen)+#12,HIGH(screen)+#11,HIGH(screen)+#10
+	BYTE HIGH(screen)+#17,HIGH(screen)+#16,HIGH(screen)+#15,HIGH(screen)+#14,HIGH(screen)+#13,HIGH(screen)+#12,HIGH(screen)+#11,HIGH(screen)+#10
+	BYTE HIGH(screen)+#17,HIGH(screen)+#16,HIGH(screen)+#15,HIGH(screen)+#14,HIGH(screen)+#13,HIGH(screen)+#12,HIGH(screen)+#11,HIGH(screen)+#10
+	BYTE HIGH(screen)+#17,HIGH(screen)+#16,HIGH(screen)+#15,HIGH(screen)+#14,HIGH(screen)+#13,HIGH(screen)+#12,HIGH(screen)+#11,HIGH(screen)+#10
+	BYTE HIGH(screen)+#17,HIGH(screen)+#16,HIGH(screen)+#15,HIGH(screen)+#14,HIGH(screen)+#13,HIGH(screen)+#12,HIGH(screen)+#11,HIGH(screen)+#10
+	BYTE HIGH(screen)+#17,HIGH(screen)+#16,HIGH(screen)+#15,HIGH(screen)+#14,HIGH(screen)+#13,HIGH(screen)+#12,HIGH(screen)+#11,HIGH(screen)+#10
+	BYTE HIGH(screen)+#17,HIGH(screen)+#16,HIGH(screen)+#15,HIGH(screen)+#14,HIGH(screen)+#13,HIGH(screen)+#12,HIGH(screen)+#11,HIGH(screen)+#10
 
-	BYTE #4F,#4E,#4D,#4C,#4B,#4A,#49,#48
-	BYTE #4F,#4E,#4D,#4C,#4B,#4A,#49,#48
-	BYTE #4F,#4E,#4D,#4C,#4B,#4A,#49,#48
-	BYTE #4F,#4E,#4D,#4C,#4B,#4A,#49,#48
-	BYTE #4F,#4E,#4D,#4C,#4B,#4A,#49,#48
-	BYTE #4F,#4E,#4D,#4C,#4B,#4A,#49,#48
-	BYTE #4F,#4E,#4D,#4C,#4B,#4A,#49,#48
-	BYTE #4F,#4E,#4D,#4C,#4B,#4A,#49,#48
+	BYTE HIGH(screen)+#0F,HIGH(screen)+#0E,HIGH(screen)+#0D,HIGH(screen)+#0C,HIGH(screen)+#0B,HIGH(screen)+#0A,HIGH(screen)+#09,HIGH(screen)+#08
+	BYTE HIGH(screen)+#0F,HIGH(screen)+#0E,HIGH(screen)+#0D,HIGH(screen)+#0C,HIGH(screen)+#0B,HIGH(screen)+#0A,HIGH(screen)+#09,HIGH(screen)+#08
+	BYTE HIGH(screen)+#0F,HIGH(screen)+#0E,HIGH(screen)+#0D,HIGH(screen)+#0C,HIGH(screen)+#0B,HIGH(screen)+#0A,HIGH(screen)+#09,HIGH(screen)+#08
+	BYTE HIGH(screen)+#0F,HIGH(screen)+#0E,HIGH(screen)+#0D,HIGH(screen)+#0C,HIGH(screen)+#0B,HIGH(screen)+#0A,HIGH(screen)+#09,HIGH(screen)+#08
+	BYTE HIGH(screen)+#0F,HIGH(screen)+#0E,HIGH(screen)+#0D,HIGH(screen)+#0C,HIGH(screen)+#0B,HIGH(screen)+#0A,HIGH(screen)+#09,HIGH(screen)+#08
+	BYTE HIGH(screen)+#0F,HIGH(screen)+#0E,HIGH(screen)+#0D,HIGH(screen)+#0C,HIGH(screen)+#0B,HIGH(screen)+#0A,HIGH(screen)+#09,HIGH(screen)+#08
+	BYTE HIGH(screen)+#0F,HIGH(screen)+#0E,HIGH(screen)+#0D,HIGH(screen)+#0C,HIGH(screen)+#0B,HIGH(screen)+#0A,HIGH(screen)+#09,HIGH(screen)+#08
+	BYTE HIGH(screen)+#0F,HIGH(screen)+#0E,HIGH(screen)+#0D,HIGH(screen)+#0C,HIGH(screen)+#0B,HIGH(screen)+#0A,HIGH(screen)+#09,HIGH(screen)+#08
 
-	BYTE #47,#46,#45,#44,#43,#42,#41,#40
-	BYTE #47,#46,#45,#44,#43,#42,#41,#40
-	BYTE #47,#46,#45,#44,#43,#42,#41,#40
-	BYTE #47,#46,#45,#44,#43,#42,#41,#40
-	BYTE #47,#46,#45,#44,#43,#42,#41,#40
-	BYTE #47,#46,#45,#44,#43,#42,#41,#40
-	BYTE #47,#46,#45,#44,#43,#42,#41,#40
-	BYTE #47,#46,#45,#44,#43,#42,#41,#40
+	BYTE HIGH(screen)+#07,HIGH(screen)+#06,HIGH(screen)+#05,HIGH(screen)+#04,HIGH(screen)+#03,HIGH(screen)+#02,HIGH(screen)+#01,HIGH(screen)+#00
+	BYTE HIGH(screen)+#07,HIGH(screen)+#06,HIGH(screen)+#05,HIGH(screen)+#04,HIGH(screen)+#03,HIGH(screen)+#02,HIGH(screen)+#01,HIGH(screen)+#00
+	BYTE HIGH(screen)+#07,HIGH(screen)+#06,HIGH(screen)+#05,HIGH(screen)+#04,HIGH(screen)+#03,HIGH(screen)+#02,HIGH(screen)+#01,HIGH(screen)+#00
+	BYTE HIGH(screen)+#07,HIGH(screen)+#06,HIGH(screen)+#05,HIGH(screen)+#04,HIGH(screen)+#03,HIGH(screen)+#02,HIGH(screen)+#01,HIGH(screen)+#00
+	BYTE HIGH(screen)+#07,HIGH(screen)+#06,HIGH(screen)+#05,HIGH(screen)+#04,HIGH(screen)+#03,HIGH(screen)+#02,HIGH(screen)+#01,HIGH(screen)+#00
+	BYTE HIGH(screen)+#07,HIGH(screen)+#06,HIGH(screen)+#05,HIGH(screen)+#04,HIGH(screen)+#03,HIGH(screen)+#02,HIGH(screen)+#01,HIGH(screen)+#00
+	BYTE HIGH(screen)+#07,HIGH(screen)+#06,HIGH(screen)+#05,HIGH(screen)+#04,HIGH(screen)+#03,HIGH(screen)+#02,HIGH(screen)+#01,HIGH(screen)+#00
+	BYTE HIGH(screen)+#07,HIGH(screen)+#06,HIGH(screen)+#05,HIGH(screen)+#04,HIGH(screen)+#03,HIGH(screen)+#02,HIGH(screen)+#01,HIGH(screen)+#00

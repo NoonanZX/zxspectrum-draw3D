@@ -1,163 +1,268 @@
-/*
-    MODULE draw3D
+                    MODULE draw3D
 
-roll:
-    BYTE 0
-pitch:
-    BYTE 0
-yaw:
-    BYTE 0
+; TODO: Projection and other transformation are rudimentary now.
 
 
-rotate:
+position_x          EQU set_vertices.position_x
+position_y          EQU set_vertices.position_y
+position_z          EQU set_vertices.position_z
+
+roll                EQU set_vertices.roll
+pitch               EQU set_vertices.pitch
+yaw                 EQU set_vertices.yaw
+
+
+rotate
 ; A - angle (clock-wise)
 ; IXL - x
 ; IYL - y
 ; Output:
-; IXH = +x*cos(angle)+y*sin(angle)
-; IYH = -x*sin(angle)+y*cos(angle)
-; Not modified:
-; EX,IXL,IYL
-    LD IYH,A ; angle
+; IXH = +x*cos(angle) + y*sin(angle)
+; IYH = -x*sin(angle) + y*cos(angle)
+; Preserves IXL, IYL, ALL'.
+                    LD IYH,A ; IYH = angle
 
-    LD B,IXL ; x
-    LD H,HIGH(cos_table)
-    LD L,A
-    LD C,(HL) ; cos(angle)
-    CALL fmul_BxC_A
-    LD IXH,A ; x*cos(angle)
+                    LD B,IXL ; x
+                    CALL mul_cosA_sB_HL
+                    PUSH HL
 
-    LD B,IYL ; y
-    LD D,HIGH(sin_table)
-    LD E,IYH
-    EX DE,HL
-    LD C,(HL) ; sin(angle)
-    CALL fmul_BxC_A
-    ADD IXH
-    LD IXH,A ; y*sin(angle)+x*cos(angle)
+                    LD A,IYH ; angle
+                    LD B,IYL ; y
+                    CALL mul_sinA_sB_HL                 
 
-    LD B,IXL ; x
-    LD D,HIGH(sin_table)
-    LD E,IYH
-    EX DE,HL
-    LD C,(HL) ; sin(angle)
-    CALL fmul_BxC_A
-    LD E,IYH ; angle
-    LD IYH,A ; x*sin(angle)
+                    POP DE
+                    ADD HL,DE
+                    LD A,H
+                    LD IXH,A ; IXH = +x*cos(angle) + y*sin(angle)
 
-    LD B,IYL ; y
-    LD D,HIGH(cos_table)
-    EX DE,HL
-    LD C,(HL) ; cos(angle)
-    CALL fmul_BxC_A
-    SUB IYH ; y*cos(angle)-x*sin(angle)
-    LD IYH,A
+                    LD A,128
+                    ADD IYH ; angle + pi
+                    LD B,IXL ; x
+                    CALL mul_sinA_sB_HL
+                    PUSH HL
 
-    RET
+                    LD A,IYH ; angle
+                    LD B,IYL ; y
+                    CALL mul_cosA_sB_HL
+
+                    POP DE
+                    ADD HL,DE
+                    LD A,H
+                    LD IYH,A ; IYH = -x*sin(angle) + y*cos(angle)
+
+                    RET
 
 
-rotate_x_only:
-; A - angle (clock-wise)
-; IXL - x
-; IYL - y
+set_vertices
+; TODO: validate projected points.
+; Transforms + project 'count' of 'vertices' and store results to internal buffer starting from 'index0'.
+; B - count
+; C - index0
+; HL - vertices [x1, y1, z1...]
 ; Output:
-; IXH = +x*cos(angle)+y*sin(angle)
-; Not modified:
-; EX,IXL,IYL
-    LD IYH,A ; angle
+; HL += 3 * count
+; Preserves NOTHING.
+                    ; loading
+                    LD A,(HL)
+                    LD IXL,A
+                    INC HL
+                    LD A,(HL)
+                    LD IYL,A
+                    INC HL
+                    LD E,(HL)
+                    INC HL
+                    ; local = (IXL, IYL, E)
 
-    LD B,IXL ; x
-    LD H,HIGH(cos_table)
-    LD L,A
-    LD C,(HL) ; cos(angle)
-    CALL fmul_BxC_A
-    LD IXH,A ; x*cos(angle)
+                    ; rotating around OZ (clock-wise)
+                    EXX
+                    LD A,0
+.roll               EQU $-1
+                    CALL rotate
+                    EXX
+                    ; (IXH, IYH, E)
 
-    LD B,IYL ; y
-    LD D,HIGH(sin_table)
-    LD E,IYH
-    EX DE,HL
-    LD C,(HL) ; sin(angle)
-    CALL fmul_BxC_A
-    ADD IXH
-    LD IXH,A ; y*sin(angle)+x*cos(angle)
+                    ; rotating around OX (clock-wise)
+                    LD D,IXH
+                    LD IXL,E
+                    LD IYL,IYH
+                    LD A,0
+.pitch              EQU $-1
+                    EXX
+                    CALL rotate
+                    EXX
+                    ; (D, IYH, IXH)
 
-    RET
+                    ; rotating around OY (clock-wise)
+                    LD E,IYH
+                    LD IXL,IXH
+                    LD IYL,D
+                    LD A,0
+.yaw                EQU $-1
+                    NEG
+                    EXX
+                    CALL rotate
+                    EXX
+                    LD A,E
+                    ; rotated = (IYH, A, IXH)
 
+                    LD IYL,C ; IYL = index (IXL is used by div_uABC_uDE_ABC)
+                    EXX ; store BC, HL -1->
 
-rotate_y_only:
-; A - angle (clock-wise)
-; IXL - x
-; IYL - y
+                    ; translating z
+                    ; translating and projecting y
+
+                    sAto16 B,C ; BC = y0 = 16bit(rotated.y)
+                    LD A,IXH
+                    sAto16 D,E ; DE = z0 = 16bit(rotated.z)
+
+                    LD HL,0
+.position_z         EQU $-2
+                    OR A
+                    ADC HL,DE
+                    EX DE,HL
+                    ; DE = z = z0 + position_z
+
+                    LD HL,0
+.position_y         EQU $-2
+                    OR A
+                    ADC HL,BC
+                    ; HL = y = y0 + position_y
+
+                    PUSH DE ; store z -2->
+
+                    CALL .project
+                    LD BC,96
+                    ADD HL,BC
+                    ; HL = y_projected = project(y, z) + 96
+
+                    ; saving y_projected
+                    LD D,HIGH(_vertex_screen_y)
+                    LD E,IYL
+                    EX DE,HL
+                    LD (HL),E
+                    INC H
+                    LD (HL),D
+
+                    ; translating and projecting x
+
+                    LD A,IYH
+                    sAto16 B,C ; BC = x0 = 16bit(rotated.x)
+
+                    LD HL,0
+.position_x         EQU $-2
+                    OR A
+                    ADC HL,BC
+                    ; HL = x = x0 + position_x
+
+                    POP DE ; restore z <-2-
+
+                    CALL .project
+                    LD BC,128
+                    ADD HL,BC
+                    ; HL = x_projected = project(x, z) + 128
+
+                    ; saving x_projected
+                    LD D,HIGH(_vertex_screen_x)
+                    LD E,IYL
+                    EX DE,HL
+                    LD (HL),E
+                    INC H
+                    LD (HL),D
+
+                    EXX ; restore BC, HL <-1-
+
+                    INC C
+                    DJNZ set_vertices
+                    RET
+.project
+; TODO: Review.
+; TODO: screen distance should be variable.
+; TOOD: round up division result?
+; HL - x_or_y
+; DE - z
+; SF - sign(x_or_y)
 ; Output:
-; IYH = -x*sin(angle)+y*cos(angle)
-; Not modified:
-; EX,IXL,IYL
-    LD IXH,A ; angle
+; HL = screen_x_or_y  = x_or_y * 256 / (z + 256)
+; Preserves IXH, IY, BC', DE', HL'.
+                    JP M,.lt_0
+.ge_0
+                    LD A,H
+                    LD B,L
+                    LD C,0
+                    ; ABC = x_or_y
 
-    LD B,IXL ; x
-    LD H,HIGH(sin_table)
-    LD L,A
-    LD C,(HL) ; sin(angle)
-    CALL fmul_BxC_A
-    LD IYH,A ; x*sin(angle)
+                    INC D ; DE = z + 256
 
-    LD B,IYL ; y
-    LD D,HIGH(cos_table)
-    LD E,IXH ; angle
-    EX DE,HL
-    LD C,(HL) ; cos(angle)
-    CALL fmul_BxC_A
-    SUB IYH ; y*cos(angle)-x*sin(angle)
-    LD IYH,A
+                    CALL div_uABC_15bitDE_ABC
 
-    RET
+                    LD H,B
+                    LD L,C
+                    ; HL = screen_x_or_y = ABC / DE
 
+                    RET
+.lt_0
+                    XOR A
+                    LD C,A
+                    SUB L
+                    LD B,A
+                    SBC A
+                    SUB H
+                    ; ABC = -x_or_y
 
-project:
-; Projecting coord on screen (screen_distance=256).
-; A - x_or_y
-; IXH - z
-; Output:
-; A=x_or_y*screen_distance/(screen_distance-z)
-    OR A
-    JP M,.negative ; if (x_or_y<0) jump
-.positive:
-    LD B,A
-    XOR A
-    LD C,A ; BC=x_or_y*256
+                    INC D ; DE = z + 256
 
-    LD D,A
-    SUB IXH
-    JP M,$+4
-    INC D
-    LD E,A ; DE=256-z
+                    CALL div_uABC_15bitDE_ABC
 
-    CALL div_BCxDE_BC
+                    XOR A
+                    SUB C
+                    LD L,A
+                    SBC A
+                    SUB B
+                    LD H,A
+                    ; HL = screen_x_or_y = -(ABC / DE)
 
-    LD A,C ; A=x_or_y*256/(256-z)
-
-    RET
-.negative:
-    NEG
-    LD B,A
-    XOR A
-    LD C,A ; BC=-x_or_y*256
-
-    LD D,A
-    SUB IXH
-    JP M,$+4
-    INC D
-    LD E,A ; DE=256-z
-
-    CALL div_BCxDE_BC
-
-    LD A,C ; A=-x_or_y*256/(256-z)
-    NEG
-
-    RET
+                    RET
 
 
+                    MACRO _draw3D_load_point
+                    ; L - index
+                    ; Output:
+                    ; BC - _vertex_screen_x[index].x
+                    ; DE - _vertex_screen_y[index].y
+                    ; Preserves A, L, IX, IY, ALL'.
+                        LD H,HIGH(_vertex_screen_pos)
+                        LD C,(HL)
+                        INC H
+                        LD B,(HL)
+                        INC H
+                        LD E,(HL)
+                        INC H
+                        LD D,(HL)
+                    ENDM
+
+
+draw_point
+; Draws single point using 'index' vertex.
+; L - index
+; Preserves IX, IY, ALL'.
+                    _draw3D_load_point
+                    JP draw2DEX.draw_point
+
+
+draw_line
+; Draws line between 'index1' and 'index2' vertices.
+; H - index1
+; L - index2
+                    LD A,H
+                    _draw3D_load_point
+                    EXX
+                    LD L,A
+                    _draw3D_load_point
+
+                    JP draw2DEX.draw_line
+
+                    ENDMODULE
+/* TODO
 model:
 ; HL - model address
 ; format: {
@@ -195,43 +300,6 @@ model:
 1   PUSH BC
     CALL .draw_face
     POP BC
-    DJNZ 1B
-
-    RET
-
-.process_vertices:
-; B - count
-; HL - buffer
-; Output:
-; HL+=3*count
-    LD C,0 ; i
-1:
-    CALL _rotate_vector
-
-    LD A,E ; y
-    LD E,C ; i
-    EXX
-    CALL project
-    EXX
-    LD C,A ; y
-
-    LD A,D ; x
-    LD D,HIGH(_projected)
-    EXX
-    CALL project
-    EXX
-
-    ADD 128
-    LD (DE),A ; x
-
-    INC D
-    LD A,C
-    ADD 96
-    LD (DE),A ; y
-
-    LD C,E ; i
-    INC C ; i+=1
-
     DJNZ 1B
 
     RET
@@ -295,59 +363,8 @@ model:
     RET
 
 
-_rotate_vector:
-; Reads 3-byte vector from (HL) and consequently rotates it around OZ,OX,OY using angles (roll),(pitch),(yaw).
-; HL - [x,y,z]
-; Output:
-; let [x2,y2,z2]=yaw(pitch(roll([x,y,z])))
-; D=x2
-; E=y2
-; IXH=z2
-; HL+=3
-; Not modified:
-; BC
-    LD A,(HL)
-    INC HL
-    LD IXL,A ; x
-
-    LD A,(HL)
-    INC HL
-    LD IYL,A ; y
-
-    LD E,(HL) ; z
-    INC HL
-
-    LD A,(roll)
-    EXX
-    CALL rotate
-    EXX
-
-    LD D,IXH ; x'
-    LD IXL,E ; z'
-    LD IYL,IYH ; y'
-
-    LD A,(pitch)
-    NEG
-    EXX
-    CALL rotate
-    EXX
-
-    LD E,IYH ; y''
-    LD IXL,IXH ; z''
-    LD IYL,D ; x''
-
-    LD A,(yaw)
-    EXX
-    CALL rotate
-    EXX
-
-    LD D,IYH ; x2
-
-    RET
-
-
 _rotate_vector_z_only:
-; Save as _rotate_vector but calculates only z coordinate.
+; Same as _rotate_vector but calculates only z coordinate.
 ; HL - [x,y,z]
 ; Output:
 ; let [x2,y2,z2]=yaw(pitch(roll([x,y,z])))
@@ -390,6 +407,4 @@ _rotate_vector_z_only:
     EXX
 
     RET
-
-    ENDMODULE
 */

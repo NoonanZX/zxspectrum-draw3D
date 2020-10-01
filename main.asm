@@ -2,13 +2,20 @@
 
                     ORG #8000
 
-code
+
+;                    DEFINE TEST
+
                     INCLUDE "macros.inc"
-;                    INCLUDE "models.inc"
 
-                    DI
+                    IFDEF TEST
+screen              EQU #4000
+                    ELSE
+screen              EQU #C000
+                    ENDIF
 
-                    XOR A
+
+code                DI
+
                     LD A,2
                     OUT (254),A
 
@@ -18,47 +25,107 @@ code
                     CALL mem.fill
 
                     LD B,3
-                    LD D,64+5
+                    LD D,64+4
                     CALL mem.fill
 
-x_min               EQU 50
-x_max               EQU 150
-y_min               EQU 50
-y_max               EQU 150
+.x_min              EQU 50
+.x_max              EQU 150
+.y_min              EQU 50
+.y_max              EQU 150
 
-                    LD B,x_min
-                    LD C,y_min
-                    LD D,x_max
-                    LD E,y_max
-                    CALL draw2DEX.set_viewport
+                    LD B,.x_min
+                    LD C,.y_min
+                    LD D,.x_max
+                    LD E,.y_max
+                    ;CALL draw2DEX.set_viewport
 
                     ;CALL draw_axis
-                    CALL draw_viewport
+                    ;CALL draw_viewport
 
-                    MACRO test_line x1, y1, x2, y2
-                        LD BC,x1
-                        LD DE,y1
-                        EXX
-                        LD BC,x2
-                        LD DE,y2
-                        EXX
-                        CALL draw2DEX.draw_line
-                    ENDM
+                    LD BC,256
+.loop               PUSH BC
 
-                    test_line x_min-25, y_min+50, x_min-15, y_max+25 ; not visible
-                    test_line x_max-25, y_max+15, x_min+25, y_max+25 ; not visible
-                    test_line x_min-25, y_min+25, x_max+25, y_max-25
-                    test_line x_max-25, y_max+25, x_min+25, y_min-25
-                    test_line x_min+25, y_min+25, x_max-50, y_min+35
-                    test_line 0, 96, 256, 96
-                    test_line 128, -256, 128, +256
+                    IFNDEF TEST
+                    LD B,24
+                    LD D,0
+                    LD HL,screen
+                    CALL mem.fill
+                    ENDIF
 
-                    DI
+                    LD BC,#0800
+                    LD HL,.vertices
+                    CALL draw3D.set_vertices
+
+                    LD HL,#0001
+                    CALL draw3D.draw_line
+                    LD HL,#0203
+                    CALL draw3D.draw_line
+                    LD HL,#0405
+                    CALL draw3D.draw_line
+                    LD HL,#0607
+                    CALL draw3D.draw_line
+
+                    LD HL,#0002
+                    CALL draw3D.draw_line
+                    LD HL,#0103
+                    CALL draw3D.draw_line
+                    LD HL,#0406
+                    CALL draw3D.draw_line
+                    LD HL,#0507
+                    CALL draw3D.draw_line
+
+                    LD HL,#0004
+                    CALL draw3D.draw_line
+                    LD HL,#0105
+                    CALL draw3D.draw_line
+                    LD HL,#0206
+                    CALL draw3D.draw_line
+                    LD HL,#0307
+                    CALL draw3D.draw_line
+
+                    LD B,24
+                    LD HL,screen
+                    LD DE,#4000
+                    CALL mem.copy
+
+                    LD A,(draw3D.yaw)
+                    INC A
+                    LD (draw3D.yaw),A
+                    LD A,(draw3D.roll)
+                    INC A
+                    LD (draw3D.roll),A
+                    LD A,(draw3D.pitch)
+                    INC A
+                    LD (draw3D.pitch),A
+
+                    POP BC
+                    DEC BC
+                    LD A,B
+                    OR C
+;                    JP NZ,.loop
+                    JP .loop
+
+                    LD A,1
+                    OUT (254),A
                     HALT
 
+.size_x             EQU 100
+.size_y             EQU 100
+.size_z             EQU 100
 
-draw_axis
-                    LD DE,#0060
+.vertices           ;BYTE -75, 0, 0
+
+                    BYTE -.size_x/2, -.size_y/2, -.size_z/2
+                    BYTE +.size_x/2, -.size_y/2, -.size_z/2
+                    BYTE -.size_x/2, +.size_y/2, -.size_z/2
+                    BYTE +.size_x/2, +.size_y/2, -.size_z/2
+                    BYTE -.size_x/2, -.size_y/2, +.size_z/2
+                    BYTE +.size_x/2, -.size_y/2, +.size_z/2
+                    BYTE -.size_x/2, +.size_y/2, +.size_z/2
+                    BYTE +.size_x/2, +.size_y/2, +.size_z/2
+
+
+draw_axis           LD DE,#0060
                     LD HL,#FF60
                     CALL draw2D.draw_horizontal_line
                     LD DE,#8000
@@ -66,8 +133,7 @@ draw_axis
                     JP draw2D.draw_vertical_line
 
                     
-draw_viewport
-                    LD A,(draw2DEX.x_min)
+draw_viewport       LD A,(draw2DEX.x_min)
                     LD D,A
                     LD A,(draw2DEX.y_min)
                     INC A
@@ -106,21 +172,21 @@ draw_viewport
 
                     INCLUDE "mem.asm"
                     INCLUDE "muldiv.asm"
+                    INCLUDE "sincos.asm"
                     INCLUDE "misc.asm"
                     INCLUDE "draw2D.asm"
                     INCLUDE "draw2DEX.asm"
-;                    INCLUDE "draw3D.asm"
+                    INCLUDE "draw3D.asm"
 
 code_size           EQU $-code
 
 
                     ALIGN 256
-data
-                    INCLUDE "screen_table.dat"
+data                INCLUDE "screen_table.dat"
                     INCLUDE "muldiv.dat"
                     INCLUDE "sincos.dat"
 ;                    INCLUDE "draw2D.dat"
-;                    INCLUDE "draw3D.dat"
+                    INCLUDE "draw3D.dat"
 data_size           EQU $-data
 
 
