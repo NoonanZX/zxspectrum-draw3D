@@ -1,6 +1,6 @@
                     MODULE draw2DEX
 
-; Viewpoint (inclusive).
+; Viewport (inclusive).
 x_min               EQU test_point.x_min ; default = 0
 y_min               EQU test_point.y_min ; default = 0
 x_max               EQU test_point.x_max ; default = 255
