@@ -145,7 +145,7 @@ draw_line
                         RRA ; A = dx / 2
                         LD B,H ; B = counter = dx
 .loop                   ADD L ; A += dy
-                        JR C,.step_y ; if (A > 256) jump
+                        JR C,.step_y ; if (A >= 256) jump
                         CP H
                         JR NC,.step_y ; if (A >= dx) jump
                         EXX
@@ -182,7 +182,7 @@ draw_line
                         RRA ; A = dy / 2
                         LD B,L ; B = counter = dy
 .loop                   ADD H ; A += dx
-                        JR C,.step_x ; if (A > 256) jump
+                        JR C,.step_x ; if (A >= 256) jump
                         CP L
                         JR NC,.step_x ; if (A >= dy) jump
                         EXX
@@ -391,434 +391,493 @@ draw_vertical_line_nocheck
 
                     RET
 
-                    ENDMODULE
-/* TODO
-_horz_line:
-; DE - x2, x1
-; L  - y
-; H  - pattern
-    LD A,D
-    CP E
-    RET C
 
-    PUSH HL ; store pattern
+draw_polygon
+; Stack - top => (x1, y1) ... (xn, yn), -1 - Points ordered counterclockwise. Low byte - x, high byte - y. Value -1 is end mark.
+; HL - pattern_8x8
+; Preserves DE, IXH, IY.
+                    POP BC
+                    EXX
 
-    LD H,HIGH(screen_table)
-    LD A,(HL)
-    INC H
-    LD H,(HL)
-    LD L,A ; HL=line_base_addr=screen_table[y]
+                    POP DE ; x1, y1
+                    LD (.first_point),DE
 
-    ; hack
-    LD A,H
-    ADD HIGH(screen_buffer-#4000)
-    LD H,A
-    ; hack
+                    POP HL ; x2, y2
+                    CALL convex.add_line
 
-    PUSH HL ; store line_base_addr
+                    POP HL ; x3, y3
+.loop               CALL convex.add_line
 
-    LD HL,l_bits_mask
-    LD C,E
-    SRL E
-    SRL E
-    SRL E ; E = byte1 = x1/8
-    LD A,7
-    AND C
-    ADD A,L
-    LD L,A
-    LD C,(HL) ; C = mask1 = l_bits_mask[x1%8]
+                    POP HL ; xn, yn
+                    LD A,L
+                    INC A
+                    JP NZ,.loop ; if (yn != -1) jump
 
-    LD L,LOW(l_bits_mask)
-    LD B,D
-    SRL D
-    SRL D
-    SRL D ; D = byte2 = x2/8
-    LD A,7
-    AND B
-    INC A
-    ADD A,L
-    LD L,A
-    LD A,(HL)
-    CPL
-    LD B,A ; B = mask2 = ~l_bits_mask[x2%8+1]
+                    LD HL,0 ; x1, y1
+.first_point        EQU $-2
+                    CALL convex.add_line
 
-    POP HL ; HL = line_base_addr
-    LD A,D
-    LD D,0
-    ADD HL,DE ; HL += byte1
-    SUB E ; A = byte2 - byte1
-    JR Z,.single_byte_line ; if (byte2 == byte1) jump
-
-    MACRO draw_byte
-    ; HL - byte_addr
-    ; C - mask
-    ; D - pattern
-        LD A,(HL)
-        AND C
-        LD E,A ; E = old = *byte_addr & mask
-
-        LD A,C
-        CPL
-        AND D ; A = new = pattern & ~mask
-
-        OR E
-        LD (HL),A ; *byte_addr = old | new = (*byte_addr & mask) | (pattern & ~mask)
-    ENDM
-
-.multi_byte_line:
-    LD D,A
-    LD E,B
-    POP AF
-    PUSH DE ; store byte2 - byte1, mask2
-    LD D,A ; D = pattern
-
-    draw_byte ; drawing first byte
-
-    LD A,D
-    POP DE
-    LD B,D ; B = byte2 - byte1
-    LD C,E ; C = mask2
-    LD D,A
-
-    INC HL
-    DEC B
-    JR Z,.last ; if (byte2 - byte1 == 1) jump
-.next:
-    LD (HL),D ; drawing intermediate byte
-    INC HL
-    DJNZ .next
-.last:
-    draw_byte ; drawing last byte
-    RET
-
-.single_byte_line:
-    POP DE ; D = pattern
-    LD A,B
-    OR C
-    LD C,A ; C = mask1 | mask2
-
-    draw_byte ; drawing single byte
-    RET
+                    EXX
+                    PUSH BC
+                    JP convex.fill
 
 
-polygon_fill:
-; B  - count
-; HL - coords (array [x1,y1,x2,y2...xn,yn] clockwise)
-; Not modified:
-; IX,IY,EX
-    CALL _polygon_write
-    RET C ; nothing to do
-1:
-    LD L,C ; y
+                    MODULE convex
+                    ; To draw convex figure - define border with add_xxx routines, then call fill.
+                    ; Note that border must be defined clockwise, opposed to draw_polygon in which points are counterclockwise ordered.
 
-    LD H,HIGH(_x_min)
-    LD E,(HL) ; _x_min[y]
-    INC H
-    LD D,(HL) ; _x_max[y]
-
-    LD H,255 ; solid pattern
-
-    PUSH BC
-    CALL _horz_line
-    POP BC
-
-    INC C
-    DJNZ 1B
-
-    RET
-
-
-polygon_fill_8x8:
-; B  - count
-; HL - coords (array [x1,y1,x2,y2...xn,yn] clockwise)
-; DE - pattern (8 bytes array from top to bottom, 8 aligned)
-; Not modified:
-; IX,IY,EX
-    PUSH DE
-    CALL _polygon_write
-    POP DE
-    RET C ; nothing to do
-1:
-    LD A,C
-    CPL
-    AND 7
-    OR E
-    PUSH DE
-    LD E,A
-    LD A,(DE) ; pattern[y%8]
-
-    LD L,C ; y
-    PUSH BC
-
-    LD H,HIGH(_x_min)
-    LD E,(HL) ; _x_min[y]
-    INC H
-    LD D,(HL) ; _x_max[y]
-
-    LD H,A ; pattern
-
-    CALL _horz_line
-    POP BC
-    POP DE
-
-    INC C
-    DJNZ 1B
-
-    RET
-
-
-_polygon_write:
-; B  - count
-; HL - coords (array [x1,y1,x2,y2...xn,yn] clockwise)
+add_horizontal_line
+; DE - x1, y
+; HL - x2, y
+; E = L
 ; Output:
-; CF = is_invisible (flat or inverted polygon)
-; B = max(y)-min(y)+1
-; C = min(y)
-    LD A,B ; count
-
-    LD D,(HL) ; x[n]
-    INC HL
-    LD E,(HL) ; y[n]
-    INC HL
-    PUSH DE ; 1->
-
-    LD B,E ; y_min = y1
-    LD C,E ; y_max = y1
-
-    DEC A
-    JR Z,.last
-.next:
-    PUSH AF ; 2->
-
-    PUSH BC ; 3->
-    LD B,(HL) ; x[n+1]
-    INC HL
-    LD C,(HL) ; y[n+1]
-    INC HL
-
-    PUSH HL ; 4->
-    PUSH BC ; 5->
-    LD H,B
-    LD L,C
-    CALL _write_polygon_line
-    POP DE ; 5<-
-    POP HL ; 4<-
-
-    POP BC ; 3<-
-    LD A,E
-    minmax_step C,B
-
-    POP AF ; 2<-
-    DEC A
-    JP NZ,.next
-.last:
-    POP HL ; 1<-
-
-    PUSH BC
-    CALL _write_polygon_line
-    POP BC ; y_max,y_min
-
-    LD A,B
-    INC C
-    JR Z,.return_error ; if (y_min==255) jump
-    SUB C ; is_invisible=(y_min==y_max)
-    RET C ; if (is_invisible) return
-    DEC C
-    INC A
-    INC A
-    LD B,A ; y_max-y_min+1
-
-    RRA
-    ADD C ; A=y_mid=(y_min+y_max)/2
-    LD H,HIGH(_x_min)
-    LD L,A
-    LD D,(HL); _x_min[y_mid]
-    INC H
-    LD A,(HL); _x_max[y_mid]
-    CP D ; if (_x_min[y_mid]>_x_max[y_mid]) is_invisible=true
-    RET NZ ; if (_x_min[y_mid]!=_x_max[y_mid]) return
-
-    INC L
-    LD A,(HL); _x_max[y_mid+1]
-    DEC H
-    LD D,(HL); _x_min[y_mid+1]
-    INC D
-    JR Z,.return_error ; if (_x_min[y_mid+1]==255) jump
-    CP D ; if (_x_min[y_mid+1]>=_x_max[y_mid+1]) is_invisible=true
-
-    RET
-.return_error:
-    SCF
-    RET
-    
-    
-_write_polygon_line:
-; DE - x1,y1
-; HL - x2,y2
-    LD A,E
-    SUB L
-    JP Z,_write_polygon_line_dy_eq_0 ; if (y1==y2) jump
-    ; def xx1=y1<y2?x1:x2, yy1=min(y1,y2), xx2=y1<y2?x2:x1, yy2=max(y1,y2)
-    JR C,2F ; if (y1<y2) jump
-1:
-    LD C,H
-    LD H,HIGH(_x_max)
-    JP 3F
-2:
-    NEG
-    EX DE,HL
-    LD C,H
-    LD H,HIGH(_x_min)
-3:
-    ; now C=xx1, L=yy1, D=xx2, E=yy2, H=high(y1<y2?_x_min:_x_max), A=yy2-yy1
-    LD E,A
-    LD A,C
-    SUB D
-    JR C,2F ; if (xx2>xx1) jump
-1:
-    LD D,A
-    LD B,#0D ; DEC C
-    JP 3F
-2:
-    NEG
-    LD D,A
-    LD B,#0C ; INC C
-3:
-    ; now C=x=xx1, L=y=yy1, D=abs(xx2-xx1), E=yy2-yy1, H=high(y1<y2?_x_min:_x_max), B=opcode(xx1<xx2?'INC C':'DEC C')
-    LD A,E
-    CP D
-    ; let w=abs(xx2-xx1), l=yy2-yy1
-    JP C,_write_polygon_line_dy_lt_dx ; if (l<w) jump
-    ; if (l>=w) fall through _write_polygon_line_dy_ge_dx
+; DE = x2, y
+; Preserves E, L, IX, IY, ALL'.
+                    LD A,H
+                    CP D
+                    RET Z
+                    LD D,H
+                    JP C,.x1_gt_x2
+.x1_lt_x2
+                    LD H,HIGH(_x_max)
+                    LD (HL),A
+                    RET
+.x1_gt_x2
+                    LD H,HIGH(_x_min)
+                    LD (HL),A
+                    LD H,L
+                    JP _add_interval
 
 
-_write_polygon_line_dy_ge_dx
-; C - x=x1
-; L - y=y1
-; D - w=abs(x2-x1)
-; E - l=y2-y1
-; H - high(y1<y2?_x_min:_x_max)
-; B - opcode(x1<x2?'INC C':'DEC C')
-    LD A,B
-    LD (.placeholder),A
-    LD B,E ; B = l
-    LD A,E
-    RRA ; A=l/2
-    LD (HL),C ; write first point
-1:
-    INC L ; y+=1
-    ADD D ; A+=w
-    JR C,3F
-    CP E
-    JR NC,3F ; if (A>l) jump
-2:
-    LD (HL),C ; write point
-    DJNZ 1B
-    RET
-3:
-    SUB E ; A-=l
-.placeholder:
-    NOP ; INC C/DEC C - x+=1/x-=1
-    JP 2B
+add_vertical_line
+; DE - x, y1
+; HL - x, y2
+; D = H
+; Output:
+; DE = x, y2
+; Preserves D, IX, IY, ALL'.
+                    LD A,L
+                    SUB E
+                    RET Z
+                    EX DE,HL
+                    JP C,.y1_gt_y2
+.y1_lt_y2
+                    LD B,A
+                    LD H,HIGH(_x_max)
+
+1                   LD (HL),D
+                    INC L
+                    DJNZ 1B
+                    LD (HL),D
+
+                    RET
+.y1_gt_y2
+                    NEG
+                    LD B,A
+                    LD H,HIGH(_x_min)
+
+                    LD C,L
+
+1                   LD (HL),D
+                    DEC L
+                    DJNZ 1B
+                    LD (HL),D
+
+                    LD H,C
+                    JP _add_interval
 
 
-_write_polygon_line_dy_lt_dx
-; C - x=x1
-; L - y=y1
-; D - w=abs(x2-x1)
-; E - l=y2-y1
-; H - high(y1<y2?_x_min:_x_max)
-; B - opcode(x1<x2?'INC C':'DEC C')
-    LD A,#0C ; INC C
-    CP B
-    LD A,HIGH(_x_min)
-    JR Z,2F ; if (xx1<xx2) jump
-1:
-    CP H
-    JP Z,_write_polygon_line_dy_lt_dx_2 ; if (y1<y2) jump
-    JP _write_polygon_line_dy_lt_dx_1
-2:
-    CP H
-    JP Z,_write_polygon_line_dy_lt_dx_1 ; if (y1<y2) jump
-    JP _write_polygon_line_dy_lt_dx_2
+add_line
+; DE - x1, y1
+; HL - x2, y2
+; Output:
+; DE - x2, y2
+; Preserves IX, IY, BC', DE', HL'.
+                    LD A,L
+                    SUB E
+                    JP Z,add_horizontal_line
+
+                    EX AF,AF'
+
+                    LD A,H
+                    SUB D
+                    JP Z,add_vertical_line
+
+                    MACRO _draw2D_convex_add_line dir_x, dir_y
+                    ; dir_x = sign(x2 - x1)
+                    ; dir_y = sign(y2 - y1)
+                    ; DE - x1, y1
+                    ; H - dx = abs(x1 - x2)
+                    ; L - dy = abs(y1 - y2)
+                    ; A = L
+                    ; Output:
+                    ; D = x1 + dx
+                    ; E = y1 + dy
+                    ; Preserves IX, IY, ALL'.
+                    ; Special: Makes RET!
+                        CP H
+
+                        EX DE,HL ; (D, E) = (dx, dy)
+                        LD C,H   ; (C, L) = (x, y)
+
+                        IF dir_y > 0
+                        LD H,HIGH(_x_max)
+                        ELSE
+                        LD H,HIGH(_x_min)
+                        ENDIF
+
+                        JP C,.by_x
+.by_y
+                        LD B,A ; counter = dy
+                        RRA ; A = dy / 2
+                        LD (HL),C
+1                       ADD D ; A += dx
+                        JR C,2F ; if (A >= 256) jump
+                        CP E
+                        JR C,3F ; if (A < dy) jump
+2                       SUB E ; A -= dy
+                        selop1 dir_x>0, INC, DEC, C ; x +/-= 1
+3                       selop1 dir_y>0, INC, DEC, L ; y +/-= 1
+                        LD (HL),C
+                        DJNZ 1B
+
+                        JP .done
+.by_x
+                        SUB E
+                        ADD D
+                        ; A = D = dx
+                        ; CF = 0
+
+                        LD B,A ; counter = dx
+                        IF dir_y > 0
+                            RRA ; A = dx / 2
+                        ELSE
+                            ; A = (dx + 1) / 2 - 1
+                            ; This hack forces algorithm to iterate over exactly same dots when processing
+                            ; line (x1, y1) - (x2, y2) and inverted line (x2, y2) - (x1, y1).
+                            ; A will never became negative, because {dx > dy > 0} => {dx >= 2} => {A >= 0}).
+                            INC A
+                            RRA
+                            DEC A
+                        ENDIF
+                        IF dir_x == dir_y
+1                           ADD E ; A += dy
+                            JR C,2F ; if (A >= 256) jump
+                            CP D
+                            JR C,3F ; if (A < dx) jump
+2                           SUB D ; A -= dx
+                            LD (HL),C
+                            selop1 dir_y>0, INC, DEC, L ; y +/-= 1
+3                           selop1 dir_x>0, INC, DEC, C ; x +/-= 1
+                            DJNZ 1B
+                            LD (HL),C
+                        ELSE
+                            LD (HL),C
+1                           selop1 dir_x>0, INC, DEC, C ; x +/-= 1
+                            ADD E ; A += dy
+                            JR C,2F ; if (A >= 256) jump
+                            CP D
+                            JR C,3F ; if (A < dx) jump
+2                           SUB D ; A -= dx
+                            selop1 dir_y>0, INC, DEC, L ; y +/-= 1
+                            LD (HL),C
+3                           DJNZ 1B
+                        ENDIF
+.done
+                        IF dir_y < 0
+                            LD A,L
+                            ADD E
+                            LD H,A
+                        ENDIF
+
+                        LD D,C
+                        LD E,L
+
+                        IF dir_y < 0
+                            JP _add_interval
+                        ELSE
+                            RET
+                        ENDIF
+                    ENDM
+
+                    JP C,.x1_gt_x2
+.x1_lt_x2           LD H,A
+                    EX AF,AF'
+                    JP C,.x1_lt_x2_y1_gt_y2
+.x1_lt_x2_y1_lt_y2  LD L,A
+                    _draw2D_convex_add_line +1, +1
+.x1_lt_x2_y1_gt_y2  NEG
+                    LD L,A
+                    _draw2D_convex_add_line +1, -1
+.x1_gt_x2           NEG
+                    LD H,A
+                    EX AF,AF'
+                    JP C,.x1_gt_x2_y1_gt_y2
+.x1_gt_x2_y1_lt_y2  LD L,A
+                    _draw2D_convex_add_line -1, +1
+.x1_gt_x2_y1_gt_y2  NEG
+                    LD L,A
+                    _draw2D_convex_add_line -1, -1
 
 
-_write_polygon_line_dy_lt_dx_1
-; C - x=x1
-; L - y=y1
-; D - w=abs(x2-x1)
-; E - l=y2-y1
-; H - high(y1<y2?_x_min:_x_max)
-; B - opcode(x1<x2?'INC C':'DEC C')
-    LD A,B
-    LD (.placeholder),A
-    LD B,D ; B = w
-    LD A,D
-    SRL A ; A=w/2
-    LD (HL),C ; write first point
-1:
-.placeholder:
-    NOP ; INC C/DEC C - x+=1/x-=1
-    ADD E ; A+=l
-    JR C,3F
-    CP D
-    JR NC,3F ; if (A>w) jump
-2:
-    DJNZ 1B
-    RET
-3:
-    SUB D ; A-=w
-    INC L ; y+=1
-    LD (HL),C ; write point
-    DJNZ 1B
-    RET
+fill
+; HL - pattern_8x8 (8 aligned)
+; Preserves DE, IXH, IY.
+                    LD (.pattern),HL
+
+                    ; todo - checks
+
+                    LD BC,(_y_minmax)
+                    LD A,B
+                    SUB C
+                    RET C
+                    LD B,A
+                    ; C = y = _y_min
+                    ; B = _y_max - _y_min
+
+                    ; Testing if figure is inverted (_x_max[i] > _x_min[i]).
+                    RRA
+                    ADD C
+                    LD L,A
+                    ; L = y_mid = (_y_min + _y_max) / 2
+
+                    LD H,HIGH(_x_min)
+                    LD A,(HL)
+                    INC H
+                    CP (HL)
+                    JP C,.ok ; if (_x_min[y_mid] < _x_max[y_mid]) test = ok
+                    JP NZ,clear ; if (_x_min[y_mid] > _x_max[y_mid]) test = fail
+
+                    XOR A
+                    CP B
+                    JP Z,.ok ; if (_x_min[y_mid] == _x_max[y_mid] && _y_min == _y_max) test = ok
+
+                    INC L
+                    LD A,(HL)
+                    DEC H
+                    CP (HL)
+                    JP C,clear ; if (_x_min[y_mid + 1] > _x_max[y_mid + 1]) test = fail
+.ok                 ; test = ok
+
+                    INC B ; B = _y_max - _y_min + 1
+.loop
+                    LD A,C
+                    EXX
+                    LD L,A
+                    ; L = y
+
+                    LD H,HIGH(screen_table)
+                    LD E,(HL)
+                    INC H
+                    LD D,(HL)
+                    ; DE = line_address[y]
+
+                    LD H,HIGH(_x_min)
+                    LD B,(HL)
+                    INC H
+                    LD C,(HL)
+                    ; B = x_min = _x_min[y]
+                    ; C = x_max = _x_max[y]
+
+                    LD A,7
+                    AND L
+                    LD HL,0
+.pattern            EQU $-2
+                    ADD L
+                    LD L,A
+                    LD A,(HL)
+                    LD IXL,A
+                    ; IXL = pattern_8x1 = pattern_8x8[y % 8]
+
+                    LD HL,.l_masks
+                    LD A,7
+                    AND B
+                    ADD L
+                    LD L,A
+
+                    LD A,(HL)
+                    EX AF,AF'
+
+                    LD HL,.r_masks
+                    LD A,7
+                    AND C
+                    ADD L
+                    LD L,A
+
+                    LD L,(HL)
+                    EX AF,AF'
+                    LD H,A
+
+                    EX DE,HL
+                    ; D = l_mask = l_masks[x_min % 8]
+                    ; E = r_mask = r_masks[x_max % 8]
+                    ; HL = line_address[y]
+
+                    LD A,7
+                    AND B
+                    XOR B
+                    RRA
+                    RRA
+                    RRA
+                    LD B,A
+                    ; B = x_min >> 3
+
+                    ADD L
+                    LD L,A
+                    ; HL = pixel_address = line_address[y] + (x_min >> 3)
+
+                    LD A,7
+                    AND C
+                    XOR C
+                    RRA
+                    RRA
+                    RRA
+                    SUB B
+                    ; A = (x_max >> 3) - (x_min >> 3)
+
+                    JR C,.next
+                    JR Z,.short
+.long
+                    LD B,A
+
+                    LD A,D
+                    AND IXL
+                    LD C,A
+                    LD A,D
+                    CPL
+                    AND (HL)
+                    OR C
+                    LD (HL),A
+                    ; (pixel_address) = l_mask & pattern_8x1 | ~l_mask & (pixel_address)
+
+                    LD A,IXL ; A = pattern_8x1
+
+                    INC L ; pixel_address += 1
+                    DEC B
+                    JR Z,2F
+
+1                   LD (HL),A ; (pixel_address) = pattern_8x1
+                    INC L     ; pixel_address += 1
+                    DJNZ 1B
+
+2                   AND E
+                    LD C,A
+                    LD A,E
+                    CPL
+                    AND (HL)
+                    OR C
+                    LD (HL),A
+                    ; (pixel_address) = r_mask & pattern_8x1 | ~r_mask & (pixel_address)
+.next
+                    EXX
+                    INC C ; y += 1
+                    DJNZ .loop
+
+                    JP clear
+.short
+                    LD A,D
+                    AND E
+                    LD D,A
+                    AND IXL
+                    LD C,A
+                    LD A,D
+                    CPL
+                    AND (HL)
+                    OR C
+                    LD (HL),A
+                    ; (pixel_address) = (l_mask & r_mask) & pattern_8x1 | ~(l_mask & r_mask) & (pixel_address)
+
+                    EXX
+                    INC C ; y += 1
+                    DJNZ .loop
+
+                    ; fall through to clear
+
+.l_masks            EQU draw2D.draw_horizontal_line_nocheck.l_masks
+.r_masks            EQU draw2D.draw_horizontal_line_nocheck.r_masks
 
 
-_write_polygon_line_dy_lt_dx_2
-; C - x=x1
-; L - y=y1
-; D - w=abs(x2-x1)
-; E - l=y2-y1
-; H - high(y1<y2?_x_min:_x_max)
-; B - opcode(x1<x2?'INC C':'DEC C')
-    LD A,B
-    LD (.placeholder),A
-    LD B,D ; B = w
-    LD A,D
-    SRL A ; A=w/2
-1:
-    ADD E ; A+=l
-    JR C,3F
-    CP D
-    JR NC,3F ; if (A>w) jump
-2:
-.placeholder:
-    NOP ; INC C/DEC C - x+=1/x-=1
-    DJNZ 1B
-    LD (HL),C ; write last point
-    RET
-3:
-    SUB D ; A-=w
-    LD (HL),C ; write point
-    INC L ; y+=1
-    JP 2B
+clear
+; Preserves A, BC, DE, IX, IY, ALL'.
+                    LD HL,#00FF
+                    LD (_y_minmax),HL
+                    RET
 
 
-_write_polygon_line_dy_eq_0
-; DE - x1,y
-; HL - x2,y
-    LD A,H
-    CP D
-    LD H,HIGH(_x_min)
-    JR C,2F ; if (x1>x2) jump
-1:
-    LD (HL),D ; write left point
-    INC H
-    LD (HL),A ; write right point
-    RET
-2:
-    LD (HL),A ; write left point
-    INC H
-    LD (HL),D ; write right point
-    RET
-*/
+_add_interval
+; L - y_min
+; H - y_max
+; Preserves DE, HL, IX, IY, ALL'.
+                    LD BC,#00FF
+.y_minmax           EQU $-2
+
+                    LD A,B
+                    CP H
+                    JR C,1F ; if (y_max > _y_max) jump
+
+                    LD A,L
+                    CP C
+                    RET NC ; if (y_min >= _y_min) return
+
+                    ; update only _y_min
+                    LD (.y_minmax),A
+                    RET
+1
+                    LD A,L
+                    CP C
+                    JR C,2F ; if (y_min < _y_min) jump
+
+                    ; update only _y_max
+                    LD A,H
+                    LD (.y_minmax+1),A
+                    RET
+2
+                    ; update both _y_min and _y_max
+                    LD (.y_minmax),HL
+                    RET
+
+
+_y_minmax           EQU _add_interval.y_minmax
+
+                    ENDMODULE ; convex
+
+
+                    ALIGN 8
+
+white               BYTE %11111111
+                    BYTE %11111111
+                    BYTE %11111111
+                    BYTE %11111111
+                    BYTE %11111111
+                    BYTE %11111111
+                    BYTE %11111111
+                    BYTE %11111111
+
+black               BYTE %00000000
+                    BYTE %00000000
+                    BYTE %00000000
+                    BYTE %00000000
+                    BYTE %00000000
+                    BYTE %00000000
+                    BYTE %00000000
+                    BYTE %00000000
+
+chess               BYTE %10101010
+                    BYTE %01010101
+                    BYTE %10101010
+                    BYTE %01010101
+                    BYTE %10101010
+                    BYTE %01010101
+                    BYTE %10101010
+                    BYTE %01010101
+
+chess2              BYTE %01010101
+                    BYTE %10101010
+                    BYTE %01010101
+                    BYTE %10101010
+                    BYTE %01010101
+                    BYTE %10101010
+                    BYTE %01010101
+                    BYTE %10101010
+
+                    ENDMODULE

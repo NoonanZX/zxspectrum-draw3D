@@ -281,7 +281,7 @@ clip_line_begin_nocheck
                     JP $+4
 1                   EX AF,AF'
                     ADD E ; A += dy
-                    JR C,2F ; if (A > 256) jump
+                    JR C,2F ; if (A >= 256) jump
                     CP D
                     JR C,3F ; if (A < dx) jump
 2                   SUB D ; A -= dx
@@ -305,7 +305,7 @@ clip_line_begin_nocheck
                     JP $+4
 1                   EX AF,AF'
                     ADD D ; A += dx
-                    JR C,2F ; if (A > 256) jump
+                    JR C,2F ; if (A >= 256) jump
                     CP E
                     JR C,3F ; if (A < dy) jump
 2                   SUB E ; A -= dy

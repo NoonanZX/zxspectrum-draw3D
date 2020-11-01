@@ -69,9 +69,8 @@ def generate_word_table(data, name = None, align = None, width = 16, paragraph_h
 
 
 def screen_line_addr(i):
-    j = 191 - i
-    k = j // 64
-    j = j % 64
+    j = i % 64
+    k = i // 64
     return (k * 64 + j % 8 * 8 + j // 8) * 32
 
 

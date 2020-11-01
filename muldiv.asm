@@ -4,8 +4,6 @@ mul_uD_uE_HL
 ; E - multiplicand
 ; Output:
 ; HL = product = multiplier * multiplicand
-; Side effects:
-; D = 0
 ; Preserves BC, IX, IY, ALL'.
                     LD H,D
                     XOR A

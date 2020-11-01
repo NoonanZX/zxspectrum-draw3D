@@ -10,9 +10,6 @@ fill:
 ; HL=dst_addr+count_256*256
 ; Not modified:
 ; A,IX,IY,EX
-; Side effects:
-; B=C=0
-; E=D
     LD (.old_sp),SP
 
     LD C,0
@@ -41,8 +38,6 @@ copy:
 ; HL=dst_addr+count_256*256
 ; Not modified:
 ; A,C,IX,IY,EX
-; Side effects:
-; B=0
     LD (.old_sp),SP
 
     LD SP,HL
