@@ -1,64 +1,54 @@
-    MODULE mem
+                    MODULE mem
 
-; TODO - Review.
+fill_blocks
+; Fills B 256-byte blocks at (HL) with C.
+; Requires B > 0.
+; Preserves A, IX, IY, ALL'.
+                    LD D,C
+                    LD E,C
 
-fill:
-; B - count_256 (number of 256-byte blocks)
-; D - value
-; HL - dst_addr
-; Output:
-; HL=dst_addr+count_256*256
-; Not modified:
-; A,IX,IY,EX
-    LD (.old_sp),SP
+                    LD (.old_sp),SP
+                    LD C,0
+                    ADD HL,BC
+                    LD SP,HL
 
-    LD C,0
-    ADD HL,BC
-    LD SP,HL
+.loop
+                    DUP 128
+                        PUSH DE
+                    EDUP
+                    DEC B
+                    JP NZ,.loop
 
-    LD E,D
-.loop:
-    DUP 128
-        PUSH DE
-    EDUP
-    DEC B
-    JP NZ,.loop
+                    LD SP,0
+.old_sp             EQU $-2
 
-    LD SP,(.old_sp)
-    RET
-.old_sp:
-    WORD 0
+                    RET
 
 
-copy:
-; B - count_256 (number of 256-byte blocks)
-; HL - src_addr
-; DE - dst_addr (aligned 256)
-; Output:
-; HL=dst_addr+count_256*256
-; Not modified:
-; A,C,IX,IY,EX
-    LD (.old_sp),SP
+copy_blocks
+; Copies B 256-byte blocks from (HL) to (DE).
+; Requires E = 0, B > 0.
+; Preserves A, C, IX, IY, ALL'.
+                    LD (.old_sp),SP
+                    LD SP,HL
 
-    LD SP,HL
-    EX DE,HL
+                    EX DE,HL
+.loop
+                    DUP 128
+                        POP DE
+                        LD (HL),E
+                        INC L
+                        LD (HL),D
+                        INC L
+                    EDUP
 
-.loop:
-    DUP 128
-        POP DE
-        LD (HL),E
-        INC L
-        LD (HL),D
-        INC L
-    EDUP
+                    INC H
+                    DEC B
+                    JP NZ,.loop
 
-    INC H
-    DEC B
-    JP NZ,.loop
+                    LD SP,0
+.old_sp             EQU $-2
 
-    LD SP,(.old_sp)
-    RET
-.old_sp:
-    WORD 0
+                    RET
 
-    ENDMODULE
+                    ENDMODULE

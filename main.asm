@@ -3,8 +3,9 @@
                     ORG #8000
 
 
-;                    DEFINE TEST
+                    DEFINE TEST
 
+                    INCLUDE "config.inc"
                     INCLUDE "macros.inc"
 
                     IFDEF TEST
@@ -26,13 +27,13 @@ code                DI
                     OUT (C),A
                     ENDIF
 
-                    LD B,3
-                    LD D,64+6
+                    LD BC,(3<<8)+(64+6)
                     LD HL,#5800
-                    CALL mem.fill
-                    LD B,3
+                    CALL mem.fill_blocks
+
+                    LD BC,(3<<8)+(64+6)
                     LD HL,#D800
-                    CALL mem.fill
+                    CALL mem.fill_blocks
 
                     XOR A
 ;                    LD A,2
@@ -42,10 +43,9 @@ code                DI
 .loop               PUSH BC
 
                     IFNDEF TEST
-                    LD B,24
-                    LD D,0
+                    LD BC,24<<8
                     LD HL,screen
-                    CALL mem.fill
+                    CALL mem.fill_blocks
                     ENDIF
 
                     CALL draw
@@ -96,5 +96,8 @@ data_size           EQU $-data
                     DISPLAY "Code: ",/D,code_size
                     DISPLAY "Data: ",/D,data_size
 
-                    SAVESNA "c:/tools/unreal/qsave1.sna", code
-                    LABELSLIST "c:/tools/unreal/user.l"
+                    SAVESNA "test.sna", code
+                    SAVESNA "qsave1.sna", code
+                    LABELSLIST "user.l"
+;                    SAVESNA "c:/tools/unreal/qsave1.sna", code
+;                    LABELSLIST "c:/tools/unreal/user.l"

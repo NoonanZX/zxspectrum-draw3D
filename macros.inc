@@ -5,27 +5,18 @@
                         LD reg_hi,A
                     ENDM
 
-                    MACRO neg16 reg_hi, reg_lo
-                        XOR A
-                        SUB reg_lo
-                        LD reg_lo,A
-                        SBC A
-                        SUB reg_hi
-                        LD reg_hi,A
-                    ENDM
 
-                    MACRO selop1 cond, op1, op2, arg
-                        IF cond
-                        op1 arg
-                        ELSE
-                        op2 arg
+                    MACRO if_then pred, cmd
+                        IF pred
+                            cmd
                         ENDIF
                     ENDM
 
-                    MACRO selop2 cond, op1, op2, arg1, arg2
-                        IF cond
-                        op1 arg1,arg2
+
+                    MACRO if_then_else pred, cmd1, cmd2
+                        IF pred
+                            cmd1
                         ELSE
-                        op2 arg1,arg2
+                            cmd2
                         ENDIF
                     ENDM

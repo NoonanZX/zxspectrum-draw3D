@@ -106,7 +106,7 @@ set_vertices
                     LD A,E
                     ; rotated = (IYH, A, IXH)
 
-                    LD IYL,C ; IYL = index (IXL is used by div_uABC_uDE_ABC)
+                    LD IYL,C ; IYL = index (IXL is used by div_uABC_15bitDE_ABC)
                     EXX ; store BC, HL -1->
 
                     ; translating z
@@ -178,7 +178,7 @@ set_vertices
 .project_x
 ; TODO: Review.
 ; TODO: screen distance should be variable.
-; TOOD: round up division result?
+; TODO: round up division result?
 ; HL - x
 ; DE - z
 ; SF - sign(x)
@@ -194,7 +194,7 @@ set_vertices
 
                     INC D ; DE = z + 256
 
-                    CALL div_uABC_15bitDE_ABC
+                    CALL div_uABC_15bitDE_ABC ; TODO: this is suboptimal
 
                     LD H,B
                     LD L,C
@@ -212,7 +212,7 @@ set_vertices
 
                     INC D ; DE = z + 256
 
-                    CALL div_uABC_15bitDE_ABC
+                    CALL div_uABC_15bitDE_ABC ; TODO: this is suboptimal
 
                     XOR A
                     SUB C
@@ -227,7 +227,7 @@ set_vertices
 ; Same as project_x, but negates result.
 ; TODO: Review.
 ; TODO: screen distance should be variable.
-; TOOD: round up division result?
+; TODO: round up division result?
 ; HL - y
 ; DE - z
 ; SF - sign(y)
@@ -243,7 +243,7 @@ set_vertices
 
                     INC D ; DE = z + 256
 
-                    CALL div_uABC_15bitDE_ABC
+                    CALL div_uABC_15bitDE_ABC ; TODO: this is suboptimal
 
                     XOR A
                     SUB C
@@ -265,7 +265,7 @@ set_vertices
 
                     INC D ; DE = z + 256
 
-                    CALL div_uABC_15bitDE_ABC
+                    CALL div_uABC_15bitDE_ABC ; TODO: this is suboptimal
 
                     LD H,B
                     LD L,C

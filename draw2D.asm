@@ -59,8 +59,7 @@ draw_line
                     JP Z,draw_vertical_line_nocheck
 
                     MACRO _draw2D_draw_line_load_pixel_address
-                    ; Input:
-                    ; H = HIGH(screen_table)
+                    ; H - HIGH(screen_table)
                     ; L - y
                     ; B - shift
                     ; Output:
@@ -74,7 +73,6 @@ draw_line
                     ENDM
 
                     MACRO _draw2D_draw_line_draw_pixel
-                    ; Input:
                     ; DE - pixel_address
                     ; C - mask
                     ; Output:
@@ -85,7 +83,6 @@ draw_line
                     ENDM
 
                     MACRO _draw2D_draw_line_init
-                    ; Input:
                     ; H - dx = abs(x2 - x1)
                     ; L - dy = y2 - y1
                     ; D - x = x1
@@ -131,15 +128,13 @@ draw_line
                         EXX
                     ENDM
 
-                    MACRO _draw2D_draw_line_by_x shift_op, mask_op
-                    ; shift_op - INC/DEC depending on sign(x2-x1)
-                    ; mask_op  - RRC/RLC depending on sign(x2-x1)
-                    ; Input:
+                    MACRO _draw2D_draw_line_by_x dir_x
+                    ; dir_x - sign(x2 - x1)
                     ; H - dx = abs(x2 - x1)
                     ; L - dy = y2 - y1
                     ; D - x = x1
                     ; E - y = y1
-                    ; Special: Makes RET!
+                    ; Special - makes RET!
                         _draw2D_draw_line_init
                         LD A,H
                         RRA ; A = dx / 2
@@ -150,10 +145,10 @@ draw_line
                         JR NC,.step_y ; if (A >= dx) jump
                         EXX
                             EX AF,AF'
-.step_x                     mask_op C ; RRC/RLC mask
+.step_x                     if_then_else dir_x>0, RRC C, RLC C ; RRC/RLC mask
                             JP NC,1F
-                            shift_op B ; shift +/-= 1
-                            shift_op E ; pixel_address +/-=1
+                            if_then_else dir_x>0, INC B, DEC B ; shift +/-= 1
+                            if_then_else dir_x>0, INC E, DEC E ; pixel_address +/-= 1
 1                           _draw2D_draw_line_draw_pixel
                             EX AF,AF'
                         EXX
@@ -167,16 +162,13 @@ draw_line
                             JP .step_x
                     ENDM
 
-                    MACRO _draw2D_draw_line_by_y shift_op, mask_op
-                    ; shift_op - INC/DEC depending on sign(x2-x1)
-                    ; mask_op  - RRC/RLC depending on sign(x2-x1)
-                    ; Input:
+                    MACRO _draw2D_draw_line_by_y dir_x
+                    ; dir_x - sign(x2 - x1)
                     ; H - dx = abs(x2 - x1)
                     ; L - dy = y2 - y1
                     ; D - x = x1
                     ; E - y = y1
-                    ; Special:
-                    ; Makes RET!
+                    ; Special - makes RET!
                         _draw2D_draw_line_init
                         LD A,L
                         RRA ; A = dy / 2
@@ -197,9 +189,9 @@ draw_line
 .step_x                 SUB L ; A -= dy
                         EXX
                             EX AF,AF'
-                            mask_op C ; RRC/RLC mask
+                            if_then_else dir_x>0, RRC C, RLC C ; RRC/RLC mask
                             JP NC,.step_y
-                            shift_op B ; shift +/-= 1
+                            if_then_else dir_x>0, INC B, DEC B ; shift +/-= 1
                             JP .step_y
                     ENDM
 .left_to_right
@@ -211,8 +203,8 @@ draw_line
                     SCF
                     SBC C
                     JP C,.left_to_right_by_y
-.left_to_right_by_x _draw2D_draw_line_by_x INC, RRC
-.left_to_right_by_y _draw2D_draw_line_by_y INC, RRC
+.left_to_right_by_x _draw2D_draw_line_by_x +1
+.left_to_right_by_y _draw2D_draw_line_by_y +1
 
 .right_to_left
                     CPL
@@ -224,8 +216,8 @@ draw_line
 
                     SBC C
                     JP C,.right_to_left_by_y
-.right_to_left_by_x _draw2D_draw_line_by_x DEC, RLC
-.right_to_left_by_y _draw2D_draw_line_by_y DEC, RLC
+.right_to_left_by_x _draw2D_draw_line_by_x -1
+.right_to_left_by_y _draw2D_draw_line_by_y -1
 
 
 draw_horizontal_line
@@ -411,7 +403,7 @@ draw_polygon
                     POP HL ; xn, yn
                     LD A,L
                     INC A
-                    JP NZ,.loop ; if (yn != -1) jump
+                    JP NZ,.loop ; if (yn <> -1) jump
 
                     LD HL,0 ; x1, y1
 .first_point        EQU $-2
@@ -514,7 +506,7 @@ add_line
                     ; D = x1 + dx
                     ; E = y1 + dy
                     ; Preserves IX, IY, ALL'.
-                    ; Special: Makes RET!
+                    ; Special - makes RET!
                         CP H
 
                         EX DE,HL ; (D, E) = (dx, dy)
@@ -536,8 +528,8 @@ add_line
                         CP E
                         JR C,3F ; if (A < dy) jump
 2                       SUB E ; A -= dy
-                        selop1 dir_x>0, INC, DEC, C ; x +/-= 1
-3                       selop1 dir_y>0, INC, DEC, L ; y +/-= 1
+                        if_then_else dir_x>0, INC C, DEC D ; x +/-= 1
+3                       if_then_else dir_y>0, INC L, DEC L ; y +/-= 1
                         LD (HL),C
                         DJNZ 1B
 
@@ -567,19 +559,19 @@ add_line
                             JR C,3F ; if (A < dx) jump
 2                           SUB D ; A -= dx
                             LD (HL),C
-                            selop1 dir_y>0, INC, DEC, L ; y +/-= 1
-3                           selop1 dir_x>0, INC, DEC, C ; x +/-= 1
+                            if_then_else dir_y>0, INC L, DEC L ; y +/-= 1
+3                           if_then_else dir_x>0, INC C, DEC C ; x +/-= 1
                             DJNZ 1B
                             LD (HL),C
                         ELSE
                             LD (HL),C
-1                           selop1 dir_x>0, INC, DEC, C ; x +/-= 1
+1                           if_then_else dir_x>0, INC C, DEC C ; x +/-= 1
                             ADD E ; A += dy
                             JR C,2F ; if (A >= 256) jump
                             CP D
                             JR C,3F ; if (A < dx) jump
 2                           SUB D ; A -= dx
-                            selop1 dir_y>0, INC, DEC, L ; y +/-= 1
+                            if_then_else dir_y>0, INC L, DEC L ; y +/-= 1
                             LD (HL),C
 3                           DJNZ 1B
                         ENDIF
@@ -798,7 +790,7 @@ fill
 
 
 clear
-; Preserves A, BC, DE, IX, IY, ALL'.
+; Preserves ALL except HL.
                     LD HL,#00FF
                     LD (_y_minmax),HL
                     RET

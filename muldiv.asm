@@ -285,3 +285,25 @@ div_uABC_15bitDE_ABC
                     LD C,A
                     LD A,IXL
                     RET
+
+
+div_256uD_uE_A
+; Converts D/E into A/256 (assuming D < E).
+; D - divident
+; E - divisor
+; Requires D < E.
+; Output:
+; A = 256 * divident / divisor
+; Preserves BC, E, IX, IY, ALL'.
+                    LD L,D
+                    XOR A
+                    LD H,A
+                    LD D,A
+
+                    DUP 7
+                    ADD HL,HL : SBC HL,DE : JP NC,$+4 : ADD HL,DE : RLA
+                    EDUP
+                    ADD HL,HL : SBC HL,DE : RLA
+
+                    CPL
+                    RET
