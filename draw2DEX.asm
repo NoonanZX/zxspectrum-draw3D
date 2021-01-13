@@ -1,3 +1,4 @@
+                    milestone
                     MODULE draw2DEX
 
 ; Viewport: following symbols defined later using LUA:
@@ -1035,3 +1036,4 @@ set_viewport
                     RET
 
                     ENDMODULE
+                    milestone

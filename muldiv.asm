@@ -1,3 +1,5 @@
+                    milestone
+
 mul_uD_uE_HL
 ; Unsigned 8-bit multiplication.
 ; D - multiplier
@@ -307,3 +309,5 @@ div_256uD_uE_A
 
                     CPL
                     RET
+
+                    milestone

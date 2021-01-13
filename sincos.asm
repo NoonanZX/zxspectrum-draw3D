@@ -1,3 +1,5 @@
+                    milestone
+
 mul_cosA_sB_HL
 ; A - angle
 ; B - scalar (signed)
@@ -30,3 +32,5 @@ mul_sinA_sB_HL
                     LD B,A
                     
                     JP mul_sB_uC_HL
+
+                    milestone

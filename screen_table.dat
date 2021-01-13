@@ -1,4 +1,8 @@
+	milestone
+
+	milestone
 	ALIGN 256
+	milestone
 screen_table:
 	BYTE #00,#00,#00,#00,#00,#00,#00,#00
 	BYTE #20,#20,#20,#20,#20,#20,#20,#20
@@ -27,7 +31,9 @@ screen_table:
 	BYTE #C0,#C0,#C0,#C0,#C0,#C0,#C0,#C0
 	BYTE #E0,#E0,#E0,#E0,#E0,#E0,#E0,#E0
 
+	milestone
 	ALIGN 256
+	milestone
 
 	BYTE HIGH(screen)+#00,HIGH(screen)+#01,HIGH(screen)+#02,HIGH(screen)+#03,HIGH(screen)+#04,HIGH(screen)+#05,HIGH(screen)+#06,HIGH(screen)+#07
 	BYTE HIGH(screen)+#00,HIGH(screen)+#01,HIGH(screen)+#02,HIGH(screen)+#03,HIGH(screen)+#04,HIGH(screen)+#05,HIGH(screen)+#06,HIGH(screen)+#07
@@ -55,3 +61,5 @@ screen_table:
 	BYTE HIGH(screen)+#10,HIGH(screen)+#11,HIGH(screen)+#12,HIGH(screen)+#13,HIGH(screen)+#14,HIGH(screen)+#15,HIGH(screen)+#16,HIGH(screen)+#17
 	BYTE HIGH(screen)+#10,HIGH(screen)+#11,HIGH(screen)+#12,HIGH(screen)+#13,HIGH(screen)+#14,HIGH(screen)+#15,HIGH(screen)+#16,HIGH(screen)+#17
 	BYTE HIGH(screen)+#10,HIGH(screen)+#11,HIGH(screen)+#12,HIGH(screen)+#13,HIGH(screen)+#14,HIGH(screen)+#15,HIGH(screen)+#16,HIGH(screen)+#17
+
+	milestone

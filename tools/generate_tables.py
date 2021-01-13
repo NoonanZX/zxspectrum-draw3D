@@ -35,7 +35,7 @@ def generate_byte_table(data, name = None, align = None, width = 16, paragraph_h
     r = ''
 
     if align is not None:
-        r += f"\tALIGN {align}\n"
+        r += f"\tmilestone\n\tALIGN {align}\n\tmilestone\n"
 
     if name is not None:
         r += f"{name}:\n"
@@ -75,16 +75,22 @@ def screen_line_addr(i):
 
 
 with open("screen_table.dat", "w") as f:
+    f.write("\tmilestone\n\n")
     table = [screen_line_addr(i) for i in range(192)]
     f.write(generate_word_table(table, name="screen_table", align = 256, width = 8, paragraph_height = 8, hi_prefix = 'HIGH(screen)+'))
+    f.write("\n\tmilestone\n")
 
 with open("muldiv.dat", "w") as f:
+    f.write("\tmilestone\n\n")
     pow2s_table = [byte_unsigned_to_signed(i)**2 for i in range(256)]
     pow2u_table = [i**2 for i in range(256)]
     f.write(generate_word_table(pow2s_table, name = "pow2s_table", align = 256))
     f.write("\n")
     f.write(generate_word_table(pow2u_table, name = "pow2u_table"))
+    f.write("\n\tmilestone\n")
 
 with open("sincos.dat", "w") as f:
+    f.write("\tmilestone\n\n")
     sin_table = [int(math.sin(i/128*math.pi) * 255) for i in range(128)]
     f.write(generate_byte_table(sin_table, name = "sin_table", align = 256))
+    f.write("\n\tmilestone\n")

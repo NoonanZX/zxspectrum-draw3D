@@ -1,3 +1,4 @@
+                    milestone
                     MODULE mem
 
 fill_blocks
@@ -52,3 +53,4 @@ copy_blocks
                     RET
 
                     ENDMODULE
+                    milestone

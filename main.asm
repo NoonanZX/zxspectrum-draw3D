@@ -15,6 +15,7 @@ screen              EQU #C000
                     ENDIF
 
 
+                    milestone
 code                DI
                     LD SP,#C000
 
@@ -73,6 +74,7 @@ code                DI
                     OUT (254),A
 
                     HALT
+                    milestone
 
 
                     INCLUDE "demo.asm"
@@ -84,7 +86,6 @@ code                DI
                     INCLUDE "draw3D.asm"
 code_size           EQU $-code
 
-                    ALIGN 256
 data                INCLUDE "screen_table.dat"
                     INCLUDE "muldiv.dat"
                     INCLUDE "sincos.dat"
@@ -92,9 +93,12 @@ data                INCLUDE "screen_table.dat"
                     INCLUDE "draw3D.dat"
 data_size           EQU $-data
 
-                    DISPLAY "Size: ",/D,$-code
-                    DISPLAY "Code: ",/D,code_size
-                    DISPLAY "Data: ",/D,data_size
+                	milestone
+
+
+                    DISPLAY "Size: ",/D,$-code, " bytes"
+                    DISPLAY "Code: ",/D,code_size, " bytes"
+                    DISPLAY "Data: ",/D,data_size, " bytes"
 
                     SAVESNA "test.sna", code
                     SAVESNA "qsave1.sna", code

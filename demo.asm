@@ -1,3 +1,5 @@
+                    milestone
+
 draw
 .x_min              EQU 100
 .x_max              EQU 200
@@ -328,3 +330,5 @@ draw_viewport
                     LD E,draw.y_min
                     LD L,draw.y_max
                     JP draw2D.draw_vertical_line
+
+                    milestone

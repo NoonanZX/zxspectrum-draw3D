@@ -1,3 +1,4 @@
+                    milestone
                     MODULE draw2D
 
 draw_point
@@ -873,3 +874,4 @@ chess2              BYTE %01010101
                     BYTE %10101010
 
                     ENDMODULE
+                    milestone

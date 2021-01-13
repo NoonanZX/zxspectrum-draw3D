@@ -1,6 +1,9 @@
+                	milestone
                     MODULE draw3D
 
+                	milestone
                     ALIGN 256
+                	milestone
 _vertex_screen_pos
 _vertex_screen_x
 _vertex_screen_x_lo BLOCK 256
@@ -10,3 +13,4 @@ _vertex_screen_y_lo BLOCK 256
 _vertex_screen_y_hi BLOCK 256
 
                     ENDMODULE
+                	milestone
