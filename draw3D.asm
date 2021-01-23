@@ -275,11 +275,11 @@ set_vertices
                     RET
 
 
-                    MACRO _draw3D_load_point
+                    MACRO _draw3D_load_point_regs
                     ; L - index
                     ; Output:
-                    ; BC - _vertex_screen_x[index].x
-                    ; DE - _vertex_screen_y[index].y
+                    ; BC - _vertex_screen_x[index]
+                    ; DE - _vertex_screen_y[index]
                     ; Preserves A, L, IX, IY, ALL'.
                         LD H,HIGH(_vertex_screen_pos)
                         LD C,(HL)
@@ -292,11 +292,30 @@ set_vertices
                     ENDM
 
 
+                    MACRO _draw3D_load_point_stack
+                    ; L - index
+                    ; Output:
+                    ; Stack += [_vertex_screen_x[index], _vertex_screen_y[index] <= top]
+                    ; Preserves A, DE, L, IX, IY, ALL'.
+                        LD H,HIGH(_vertex_screen_pos)
+                        LD C,(HL)
+                        INC H
+                        LD B,(HL)
+                        PUSH BC
+
+                        INC H
+                        LD C,(HL)
+                        INC H
+                        LD B,(HL)
+                        PUSH BC
+                    ENDM
+
+
 draw_point
 ; Draws single point using 'index' vertex.
 ; L - index
 ; Preserves IX, IY, ALL'.
-                    _draw3D_load_point
+                    _draw3D_load_point_regs
                     JP draw2DEX.draw_point
 
 
@@ -304,37 +323,50 @@ draw_line
 ; Draws line between 'index1' and 'index2' vertices.
 ; H - index1
 ; L - index2
+; Preserves IX, IY.
                     LD A,H
-                    _draw3D_load_point
+                    _draw3D_load_point_regs
                     EXX
                     LD L,A
-                    _draw3D_load_point
+                    _draw3D_load_point_regs
 
                     JP draw2DEX.draw_line
 
 
 draw_polygon
-; TODO: Rewrite.
-; DE - indices
+; DE - [index1, index2 ... indexN, -1]
+; Points are ordered counterclockwise.
+; Must be at least 3 points.
 ; HL - pattern_8x8
-; Output:
-; DE += count(indices)
-; Preserves IXH, IY.
+; Preserves IY.
+                    LD (.pattern),HL
+
                     LD BC,-1
                     PUSH BC
+
                     LD A,(DE)
-                    INC DE
-.loop               EXX
                     LD L,A
-                    _draw3D_load_point
-                    LD D,C
-                    PUSH DE
-                    EXX
-                    LD A,(DE)
+                    _draw3D_load_point_stack
                     INC DE
-                    CP B
+
+                    LD A,(DE)
+                    LD L,A
+                    _draw3D_load_point_stack
+                    INC DE
+
+                    LD A,(DE)
+                    LD L,A
+.loop               _draw3D_load_point_stack
+                    INC DE
+
+                    LD A,(DE)
+                    LD L,A
+                    INC A
                     JP NZ,.loop
-                    CALL draw2D.draw_polygon ; todo
+
+                    LD HL,0
+.pattern            EQU $-2
+                    CALL draw2DEX.draw_polygon
 
                     ENDMODULE
                     milestone

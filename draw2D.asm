@@ -57,7 +57,7 @@ draw_line
                     LD A,H
                     SUB D
                     JP C,.right_to_left
-                    JP Z,draw_vertical_line_nocheck
+                    JP Z,draw_vertical_line.nocheck
 
                     MACRO _draw2D_draw_line_load_pixel_address
                     ; H - HIGH(screen_table)
@@ -228,12 +228,11 @@ draw_horizontal_line
 ; Preserves IX, IY, ALL'.
                     LD A,D
                     CP H
-                    JP C,draw_horizontal_line_nocheck
+                    JP C,.nocheck
                     JP Z,draw_point
                     EX DE,HL
                     LD E,L
-draw_horizontal_line_nocheck
-; Same as above, but requires x1 <= x2.
+.nocheck            ; x1 <= x2.
                     LD B,H
                     ; D = x1
                     ; B = x2
@@ -332,12 +331,11 @@ draw_vertical_line
 ; Preserves IX, IY, ALL'.
                     LD A,E
                     CP L
-                    JP C,draw_vertical_line_nocheck
+                    JP C,.nocheck
                     JP Z,draw_point
                     EX DE,HL
                     LD D,H
-draw_vertical_line_nocheck
-; Same as above, but requires y1 <= y2.
+.nocheck            ; y1 <= y2.
                     LD A,L
                     SUB E
                     INC A
@@ -386,28 +384,31 @@ draw_vertical_line_nocheck
 
 
 draw_polygon
-; Stack - top => (x1, y1) ... (xn, yn), -1 - Points ordered counterclockwise. Low byte - x, high byte - y. Value -1 is end mark.
+; Stack - [-1, (x1, y1), (x2, y2) ... (xn, yn) <= top]
+; Points are ordered counterclockwise.
+; Must be at least 3 points.
 ; HL - pattern_8x8
 ; Preserves DE, IXH, IY.
                     POP BC
                     EXX
 
-                    POP DE ; x1, y1
-                    LD (.first_point),DE
+                    POP DE
+                    LD (.last_point),DE
 
-                    POP HL ; x2, y2
+                    POP HL
                     CALL convex.add_line
 
-                    POP HL ; x3, y3
+                    POP HL
 .loop               CALL convex.add_line
 
-                    POP HL ; xn, yn
+                    POP HL
+
                     LD A,L
                     INC A
-                    JP NZ,.loop ; if (yn <> -1) jump
+                    JP NZ,.loop ; if L <> -1 jump
 
-                    LD HL,0 ; x1, y1
-.first_point        EQU $-2
+                    LD HL,0
+.last_point         EQU $-2
                     CALL convex.add_line
 
                     EXX
@@ -425,7 +426,7 @@ add_horizontal_line
 ; E = L
 ; Output:
 ; DE = x2, y
-; Preserves E, L, IX, IY, ALL'.
+; Preserves E, IX, IY, ALL'.
                     LD A,H
                     CP D
                     RET Z
@@ -434,12 +435,13 @@ add_horizontal_line
 .x1_lt_x2
                     LD H,HIGH(_x_max)
                     LD (HL),A
-                    RET
+                    LD H,L
+                    JP _add_max_interval
 .x1_gt_x2
                     LD H,HIGH(_x_min)
                     LD (HL),A
                     LD H,L
-                    JP _add_interval
+                    JP _add_min_interval
 
 
 add_vertical_line
@@ -458,12 +460,16 @@ add_vertical_line
                     LD B,A
                     LD H,HIGH(_x_max)
 
+                    LD C,L
+
 1                   LD (HL),D
                     INC L
                     DJNZ 1B
                     LD (HL),D
 
-                    RET
+                    LD H,L
+                    LD L,C
+                    JP _add_max_interval
 .y1_gt_y2
                     NEG
                     LD B,A
@@ -477,7 +483,7 @@ add_vertical_line
                     LD (HL),D
 
                     LD H,C
-                    JP _add_interval
+                    JP _add_min_interval
 
 
 add_line
@@ -513,11 +519,7 @@ add_line
                         EX DE,HL ; (D, E) = (dx, dy)
                         LD C,H   ; (C, L) = (x, y)
 
-                        IF dir_y > 0
-                        LD H,HIGH(_x_max)
-                        ELSE
-                        LD H,HIGH(_x_min)
-                        ENDIF
+                        if_then_else dir_y>0, <LD H,HIGH(_x_max)>, <LD H,HIGH(_x_min)>
 
                         JP C,.by_x
 .by_y
@@ -529,7 +531,7 @@ add_line
                         CP E
                         JR C,3F ; if (A < dy) jump
 2                       SUB E ; A -= dy
-                        if_then_else dir_x>0, INC C, DEC D ; x +/-= 1
+                        if_then_else dir_x>0, INC C, DEC C ; x +/-= 1
 3                       if_then_else dir_y>0, INC L, DEC L ; y +/-= 1
                         LD (HL),C
                         DJNZ 1B
@@ -577,20 +579,15 @@ add_line
 3                           DJNZ 1B
                         ENDIF
 .done
-                        IF dir_y < 0
-                            LD A,L
-                            ADD E
-                            LD H,A
-                        ENDIF
+                        LD A,L
+                        if_then_else dir_y>0, SUB E, ADD E
 
                         LD D,C
                         LD E,L
 
-                        IF dir_y < 0
-                            JP _add_interval
-                        ELSE
-                            RET
-                        ENDIF
+                        if_then dir_y>0, <LD H,L>
+                        if_then_else dir_y>0, <LD L,A>, <LD H,A>
+                        if_then_else dir_y>0, JP _add_max_interval, JP _add_min_interval
                     ENDM
 
                     JP C,.x1_gt_x2
@@ -613,46 +610,134 @@ add_line
                     _draw2D_convex_add_line -1, -1
 
 
+                    ; TODO: Comment.
+_xmin_yminmax_part1 EQU fill.xmin_yminmax_part1
+_xmin_yminmax_part2 EQU fill.xmin_yminmax_part2
+_xmax_yminmax_part1 EQU fill.xmax_yminmax_part1
+_xmax_yminmax_part2 EQU fill.xmax_yminmax_part2
+
+_interval_empty     EQU #FDFF
+_interval_bad       EQU #FCFE
+
+
+                    MACRO _draw2D_convex_save_interval dir, addr
+                    ; TODO: Comment.
+                    ; L - min
+                    ; H - max
+                    ; Preserves ALL except AF.
+                        if_then_else dir<0, <LD A,(addr)>, <LD A,(addr+1)>
+                        if_then_else dir<0, CP LOW(_interval_empty), CP HIGH(_interval_empty)
+                        JR NZ,.add
+.new
+                        LD (addr),HL
+                        RET
+.add
+                        if_then_else dir<0, CP H, CP L
+                        JR NZ,.failed
+
+                        if_then_else dir<0, <LD A,L>, <LD A,H>
+                        if_then_else dir<0, <LD (addr), A>, <LD (addr+1), A>
+                        RET
+.failed
+                    ENDM
+
+
+_add_min_interval
+; L - y_min
+; H - y_max
+; Preserves DE, IX, IY, ALL'.
+                    _draw2D_convex_save_interval -1, _xmin_yminmax_part1
+                    _draw2D_convex_save_interval -1, _xmin_yminmax_part2
+
+                    LD HL,_interval_bad
+                    LD (_xmin_yminmax_part1),HL
+
+                    RET
+
+
+_add_max_interval
+; L - y_min
+; H - y_max
+; Preserves DE, IX, IY, ALL'.
+                    _draw2D_convex_save_interval +1, _xmax_yminmax_part1
+                    _draw2D_convex_save_interval +1, _xmax_yminmax_part2
+
+                    LD HL,_interval_bad
+                    LD (_xmax_yminmax_part1),HL
+
+                    RET
+
+
 fill
 ; HL - pattern_8x8 (8 aligned)
-; Preserves DE, IXH, IY.
+; Preserves IXH, IY.
                     LD (.pattern),HL
 
-                    ; todo - checks
+                    ; TODO: Comment.
 
-                    LD BC,(_y_minmax)
+                    LD BC,_interval_empty
+.xmin_yminmax_part1 EQU $-2
+                    LD A,LOW(_interval_empty)
+                    CP C
+                    JP Z,clear
+
+                    LD DE,_interval_empty
+.xmin_yminmax_part2 EQU $-2
+                    CP E
+                    JP Z,.skip_xmin_yminmax_part2
                     LD A,B
+                    CP E
+                    JP NZ,clear
+                    LD B,D
+.skip_xmin_yminmax_part2
+
+                    LD HL,_interval_empty
+.xmax_yminmax_part1 EQU $-2
+                    LD A,HIGH(_interval_empty)
+                    CP H
+                    JP Z,clear
+
+                    LD DE,_interval_empty
+.xmax_yminmax_part2 EQU $-2
+                    CP D
+                    JP Z,.skip_xmax_yminmax_part2
+                    LD A,L
+                    CP D
+                    JP NZ,clear
+                    LD L,E
+.skip_xmax_yminmax_part2
+
+                    LD A,C
+                    CP L
+                    JP NC,$+4 ; usually _x_min_y_min == _x_max_y_min and we will jump, so using JP.
+                    LD C,L
+                    ; C = y_min = max(_x_min_y_min, _x_max_y_min)
+
+                    LD A,B
+                    CP H
+                    JR C,$+3 ; usually _x_min_y_max == _x_max_y_max and we will not jump, so using JR.
+                    LD A,H
+                    ; A = y_max = min(_x_min_y_max, _x_max_y_max)
+
                     SUB C
-                    RET C
+                    JP C,clear ; if (y_min > y_max) jump
                     LD B,A
-                    ; C = y = _y_min
-                    ; B = _y_max - _y_min
+                    ; C = y = y_min
+                    ; B = y_max - y_min
 
                     ; Testing if figure is inverted (_x_max[i] > _x_min[i]).
+                    ; TODO: Is this neccessary? It can sometimes prevent visible polygon from drawing.
                     RRA
                     ADD C
                     LD L,A
-                    ; L = y_mid = (_y_min + _y_max) / 2
-
-                    LD H,HIGH(_x_min)
-                    LD A,(HL)
-                    INC H
-                    CP (HL)
-                    JP C,.ok ; if (_x_min[y_mid] < _x_max[y_mid]) test = ok
-                    JP NZ,clear ; if (_x_min[y_mid] > _x_max[y_mid]) test = fail
-
-                    XOR A
-                    CP B
-                    JP Z,.ok ; if (_x_min[y_mid] == _x_max[y_mid] && _y_min == _y_max) test = ok
-
-                    INC L
+                    ; L = y_mid = (y_min + y_max) / 2
+                    LD H,HIGH(_x_max)
                     LD A,(HL)
                     DEC H
                     CP (HL)
-                    JP C,clear ; if (_x_min[y_mid + 1] > _x_max[y_mid + 1]) test = fail
-.ok                 ; test = ok
+                    JP C,clear ; if (_x_min[y_mid] > _x_max[y_mid]) jump
 
-                    INC B ; B = _y_max - _y_min + 1
+                    INC B ; B = y_max - y_min + 1
 .loop
                     LD A,C
                     EXX
@@ -786,51 +871,19 @@ fill
 
                     ; fall through to clear
 
-.l_masks            EQU draw2D.draw_horizontal_line_nocheck.l_masks
-.r_masks            EQU draw2D.draw_horizontal_line_nocheck.r_masks
+.l_masks            EQU draw2D.draw_horizontal_line.l_masks
+.r_masks            EQU draw2D.draw_horizontal_line.r_masks
 
 
 clear
 ; Preserves ALL except HL.
-                    LD HL,#00FF
-                    LD (_y_minmax),HL
+                    LD HL,_interval_empty
+                    LD (_xmin_yminmax_part1),HL
+                    LD (_xmin_yminmax_part2),HL
+                    LD (_xmax_yminmax_part1),HL
+                    LD (_xmax_yminmax_part2),HL
+
                     RET
-
-
-_add_interval
-; L - y_min
-; H - y_max
-; Preserves DE, HL, IX, IY, ALL'.
-                    LD BC,#00FF
-.y_minmax           EQU $-2
-
-                    LD A,B
-                    CP H
-                    JR C,1F ; if (y_max > _y_max) jump
-
-                    LD A,L
-                    CP C
-                    RET NC ; if (y_min >= _y_min) return
-
-                    ; update only _y_min
-                    LD (.y_minmax),A
-                    RET
-1
-                    LD A,L
-                    CP C
-                    JR C,2F ; if (y_min < _y_min) jump
-
-                    ; update only _y_max
-                    LD A,H
-                    LD (.y_minmax+1),A
-                    RET
-2
-                    ; update both _y_min and _y_max
-                    LD (.y_minmax),HL
-                    RET
-
-
-_y_minmax           EQU _add_interval.y_minmax
 
                     ENDMODULE ; convex
 

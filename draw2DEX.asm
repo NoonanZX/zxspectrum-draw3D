@@ -123,17 +123,142 @@ draw_line
                     RET C
                     CALL _clip_line_x
                     RET C
-/*
-    EXX
-    LD H,C
-    LD L,E
-    PUSH HL
-    EXX
-    POP HL
-*/
 
                     LD D,C
                     JP draw2D.draw_line
+
+
+draw_polygon
+; Stack - [-1, x1, y1, x2, y2 ... xn, yn <= top]
+; Points are ordered counterclockwise.
+; Must be at least 3 points.
+; HL - pattern_8x8
+; Preserves IY.
+                    LD (.pattern),HL
+                    POP HL
+                    LD (.ret_addr),HL
+
+                    POP DE
+                    POP BC
+                    LD (.last_x),BC
+                    LD (.last_y),DE
+                    EXX
+                    POP DE
+                    POP BC
+                    PUSH BC
+                    PUSH DE
+                    CALL .add_edge
+
+                    POP DE
+                    POP BC
+                    EXX
+                    POP DE
+.loop               POP BC
+                    PUSH BC
+                    PUSH DE
+                    CALL .add_edge
+
+                    POP DE
+                    POP BC
+                    EXX
+                    POP DE
+
+                    LD A,D
+                    AND E
+                    INC A
+                    JP NZ,.loop ; if DE <> -1 jump
+
+                    LD BC,0
+.last_x             EQU $-2
+                    LD DE,0
+.last_y             EQU $-2
+                    CALL .add_edge
+
+                    LD HL,0
+.ret_addr           EQU $-2
+                    PUSH HL
+                    LD HL,0
+.pattern            EQU $-2
+                    JP draw2D.convex.fill
+.add_edge
+                    ; |(x1, y1) - (x2, y2)| = |(BC, DE) - (BC', DE')|
+                    ; Edge going counterclockwise - so polygon`s inner area is to the left.
+
+                    CALL _clip_line_y
+                    RET C ; If max(y1, y2) < y_min or min(y1, y2) > y_max then just ignoring edge.
+                    ; |(xx1, yy1) - (xx2, yy2)| = |(x1, y1) - (x2, y2)| x [y_min, y_max] = |(BC, E) - (BC', A = E')|.
+
+                    MACRO _draw2DEX_draw_polygon_add_edge dir_y
+                        ; |(xx1, yy1) - (xx2, yy2)| = |(BC, IXL = E) - (BC', IXH = E')|.
+                        ; if y1 < y2 (dir_y=+1) - this line is a polygon`s LEFT border.
+                        ; if y1 > y2 (dir_y=-1) - this line is a polygon`s RIGHT border.
+                        ; Case y1 == y2 handled properly by (dir_y=+1) code variant.
+
+                        CALL _clip_line_x
+                        JR C,.outside ; if (max(xx1, xx2) < x_min or min(xx1, xx2) > x_max) jump
+                        ; |(xxx1, yyy1) - (xxx2, yyy2)| = |(xx1, yy1) - (xx2, yy2)| x [x_min, x_max] = |(C, E) - (H, L)|
+
+                        ; Testing if |(xx1, yy1) - (xx2, yy2)| crosses appropriate viewport border - LEFT (x_min) if y1 < y2 or RIGHT (x_max) if y1 > y2.
+                        LD A,0
+                        if_then_else dir_y>0, _draw2DEX_viewport_add_addr_1 "xmin", _draw2DEX_viewport_add_addr_1 "xmax"
+                        CP C
+                        JR Z,.hit_begin
+                        CP H
+                        JR Z,.hit_end
+
+                        ; draw2D.convex.add_*** procedures works with CLOCKWISE-oriented border parts, so dont forget to reverse our lines.
+.inside
+                        ; Adding |(xxx2, yyy2) - (xxx1, yyy1)|.
+                        LD D,C
+                        EX DE,HL
+                        JP draw2D.convex.add_line
+.hit_begin
+                        CP H
+                        JR Z,.outside_ok ; if (xx1 == xx2) jump
+
+                        ; Adding |(xxx2, yyy2) - (xxx1, yyy1)|.
+                        LD D,C
+                        EX DE,HL
+                        CALL draw2D.convex.add_line
+
+                        ; Adding |(xxx1, yyy1) - (xxx1, yy1)|.
+                        LD H,D
+                        LD A,IXL
+                        LD L,A
+                        JP draw2D.convex.add_vertical_line
+.hit_end
+                        LD D,C
+                        PUSH DE ; (xxx1, yyy1) =>
+
+                        ; Adding |(xxx2, yy2) - (xxx2, yyy2)|.
+                        LD D,H
+                        LD E,IXH
+                        CALL draw2D.convex.add_vertical_line
+
+                        ; Adding |(xxx2, yyy2) - (xxx1, yyy1)|.
+                        POP HL ; (xxx1, yyy1) <=
+                        JP draw2D.convex.add_line
+.outside
+                        OR A
+                        if_then_else dir_y>0, RET NZ, RET Z ; If LEFT/RIGHT polygon`s border is RIGHT/LEFT from viewport - just ignore it.
+.outside_ok
+                        ; Adding |(x_min/x_max, yy2) - (x_min/x_max, yy1)|.
+                        LD D,0
+                        if_then_else dir_y>0, _draw2DEX_viewport_add_addr_1 "xmin", _draw2DEX_viewport_add_addr_1 "xmax"
+                        LD E,IXH
+                        LD H,D
+                        LD A,IXL
+                        LD L,A
+                        JP draw2D.convex.add_vertical_line
+                    ENDM
+
+                    CP E
+                    LD IXL,E ; IXL = y1
+                    LD IXH,A ; IXH = y2
+                    JP C,.y1_gt_y2
+
+.y1_le_y2           _draw2DEX_draw_polygon_add_edge +1
+.y1_gt_y2           _draw2DEX_draw_polygon_add_edge -1
 
 
 _clip_line_y

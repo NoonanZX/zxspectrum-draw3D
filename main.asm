@@ -3,7 +3,7 @@
                     ORG #8000
 
 
-                    DEFINE TEST
+;                    DEFINE TEST
 
                     INCLUDE "config.inc"
                     INCLUDE "macros.inc"
@@ -36,8 +36,8 @@ code                DI
                     LD HL,#D800
                     CALL mem.fill_blocks
 
-                    XOR A
-;                    LD A,2
+;                    XOR A
+                    LD A,2
                     OUT (254),A
 
                     LD BC,1000
@@ -67,8 +67,8 @@ code                DI
                     DEC BC
                     LD A,B
                     OR C
-;                    JP NZ,.loop
-                    JP .loop
+                    JP NZ,.loop
+;                    JP .loop
 
                     LD A,4
                     OUT (254),A
