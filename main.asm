@@ -2,7 +2,6 @@
 
                     ORG #8000
 
-
 ;                    DEFINE TEST
 
                     INCLUDE "config.inc"
@@ -40,6 +39,8 @@ code                DI
                     LD A,2
                     OUT (254),A
 
+                    CALL demo.init
+
                     LD BC,1000
 .loop               PUSH BC
 
@@ -49,7 +50,7 @@ code                DI
                     CALL mem.fill_blocks
                     ENDIF
 
-                    CALL draw
+                    CALL demo.draw
 
                     IFNDEF TEST
 ;                    EI
@@ -90,7 +91,6 @@ data                INCLUDE "screen_table.dat"
                     INCLUDE "muldiv.dat"
                     INCLUDE "sincos.dat"
                     INCLUDE "draw2D.dat"
-                    INCLUDE "draw3D.dat"
 data_size           EQU $-data
 
                 	milestone
@@ -100,7 +100,6 @@ data_size           EQU $-data
                     DISPLAY "Code: ",/D,code_size, " bytes"
                     DISPLAY "Data: ",/D,data_size, " bytes"
 
-                    SAVESNA "test.sna", code
                     SAVESNA "qsave1.sna", code
                     LABELSLIST "user.l"
 ;                    SAVESNA "c:/tools/unreal/qsave1.sna", code

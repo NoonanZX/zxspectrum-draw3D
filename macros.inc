@@ -1,11 +1,3 @@
-                    MACRO sAto16 reg_hi, reg_lo
-                        LD reg_lo,A
-                        ADD A
-                        SBC A
-                        LD reg_hi,A
-                    ENDM
-
-
                     MACRO if_then pred, cmd
                         IF pred
                             cmd

@@ -1,90 +1,283 @@
                     milestone
+                    MODULE demo
 
-;1.36 (fullscreen)
-;1.28 (windowed)
+; 1.33.50
+
+
+viewport_x_min      EQU 0
+viewport_y_min      EQU 0
+viewport_x_max      EQU 255
+viewport_y_max      EQU 191
+viewport_x_center   EQU 128
+viewport_y_center   EQU 96
+
+x_pos               EQU process_vertex.x_pos
+y_pos               EQU process_vertex.y_pos
+z_pos               EQU process_vertex.z_pos
+roll                EQU process_vertex.roll
+pitch               EQU process_vertex.pitch
+yaw                 EQU process_vertex.yaw
+
+
+                    MACRO set_vertex index, x_local, y_local, z_local
+                        LD IXL,x_local
+                        LD IYL,y_local
+                        LD A,z_local
+
+                        CALL process_vertex
+
+                        LD (buffer + 4 * index),HL
+                        EXX
+                        LD (buffer + 4 * index + 2),HL
+                    ENDM
+
+
+                    MACRO push_vertex index
+                        LD HL,(buffer + 4 * index)
+                        PUSH HL
+                        LD HL,(buffer + 4 * index + 2)
+                        PUSH HL
+                    ENDM
+
+
+init
+                    LD BC,(viewport_x_center<<8) + viewport_y_center
+                    LD DE,(viewport_x_min<<8) + viewport_y_min
+                    LD HL,(viewport_x_max<<8) + viewport_y_max
+                    JP draw3D.set_viewport
+
 
 draw
-.x_min              EQU 50
-.x_max              EQU 200
-.y_min              EQU 50
-.y_max              EQU 150
+.x_size             EQU 100
+.y_size             EQU 100
+.z_size             EQU 100
 
-                    LD E,.x_min
-                    LD D,.x_max
-                    LD L,.y_min
-                    LD H,.y_max
-;                    CALL draw2DEX.set_viewport
-;                    CALL .draw_viewport
+                    set_vertex 0, -.x_size/2, -.y_size/2, +.z_size/2
+                    set_vertex 1, +.x_size/2, -.y_size/2, +.z_size/2
+                    set_vertex 2, -.x_size/2, +.y_size/2, +.z_size/2
+                    set_vertex 3, +.x_size/2, +.y_size/2, +.z_size/2
+                    set_vertex 4, -.x_size/2, -.y_size/2, -.z_size/2
+                    set_vertex 5, +.x_size/2, -.y_size/2, -.z_size/2
+                    set_vertex 6, -.x_size/2, +.y_size/2, -.z_size/2
+                    set_vertex 7, +.x_size/2, +.y_size/2, -.z_size/2
 
-                    LD BC,#0800
-                    LD HL,.vertices
-                    CALL draw3D.set_vertices
-
-                    LD DE,.front
+                    ; front
+                    LD HL,#8000 : PUSH HL
+                    push_vertex 4
+                    push_vertex 5
+                    push_vertex 7
+                    push_vertex 6
                     LD HL,draw2D.white
-                    CALL draw3D.draw_polygon
+                    CALL draw2DEX.draw_polygon
 
-                    LD DE,.back
+                    ; back
+                    LD HL,#8000 : PUSH HL
+                    push_vertex 0
+                    push_vertex 2
+                    push_vertex 3
+                    push_vertex 1
                     LD HL,draw2D.white
-                    CALL draw3D.draw_polygon
+                    CALL draw2DEX.draw_polygon
 
-                    LD DE,.top
-                    LD HL,.chess_wide
-                    CALL draw3D.draw_polygon
+                    ; top
+                    LD HL,#8000 : PUSH HL
+                    push_vertex 6
+                    push_vertex 7
+                    push_vertex 3
+                    push_vertex 2
+                    LD HL,chess_wide
+                    CALL draw2DEX.draw_polygon
 
-                    LD DE,.bottom
-                    LD HL,.rabica
-                    CALL draw3D.draw_polygon
+                    ; bottom
+                    LD HL,#8000 : PUSH HL
+                    push_vertex 4
+                    push_vertex 0
+                    push_vertex 1
+                    push_vertex 5
+                    LD HL,rabica
+                    CALL draw2DEX.draw_polygon
 
-                    LD DE,.left
+                    ; left
+                    LD HL,#8000 : PUSH HL
+                    push_vertex 0
+                    push_vertex 4
+                    push_vertex 6
+                    push_vertex 2
                     LD HL,draw2D.chess
-                    CALL draw3D.draw_polygon
+                    CALL draw2DEX.draw_polygon
 
-                    LD DE,.right
+                    ; right
+                    LD HL,#8000 : PUSH HL
+                    push_vertex 5
+                    push_vertex 1
+                    push_vertex 3
+                    push_vertex 7
                     LD HL,draw2D.chess
-                    CALL draw3D.draw_polygon
+                    CALL draw2DEX.draw_polygon
 
-                    LD HL,draw3D.roll
-                    INC (HL)
-                    LD HL,draw3D.pitch
-                    INC (HL)
-                    LD HL,draw3D.yaw
-                    INC (HL)
+                    LD HL,roll
+                    DEC (HL)
+                    LD HL,pitch
+                    DEC (HL)
+                    LD HL,yaw
+                    DEC (HL)
 
                     RET
 
-.size_x             EQU 100
-.size_y             EQU 100
-.size_z             EQU 100
 
-.vertices           BYTE -.size_x/2, -.size_y/2, +.size_z/2
-                    BYTE +.size_x/2, -.size_y/2, +.size_z/2
-                    BYTE -.size_x/2, +.size_y/2, +.size_z/2
-                    BYTE +.size_x/2, +.size_y/2, +.size_z/2
-                    BYTE -.size_x/2, -.size_y/2, -.size_z/2
-                    BYTE +.size_x/2, -.size_y/2, -.size_z/2
-                    BYTE -.size_x/2, +.size_y/2, -.size_z/2
-                    BYTE +.size_x/2, +.size_y/2, -.size_z/2
+draw_viewport
+                    LD D,viewport_x_min
+                    LD E,viewport_y_min+1
+                    LD H,viewport_x_max
+                    LD L,E
+                    CALL draw2D.draw_horizontal_line
 
-.front              BYTE 4,5,7,6,-1 ; 0,0,+100
-.back               BYTE 0,2,3,1,-1 ; 0,0,-100
-.top                BYTE 6,7,3,2,-1 ; 0,+100,0
-.bottom             BYTE 4,0,1,5,-1 ; 0,-100,0
-.left               BYTE 0,4,6,2,-1 ; -100,0,0
-.right              BYTE 5,1,3,7,-1 ; +100,0,0
+                    LD D,viewport_x_min
+                    LD E,viewport_y_max-1
+                    LD H,viewport_x_max
+                    LD L,E
+                    CALL draw2D.draw_horizontal_line
+
+                    LD D,viewport_x_min+1
+                    LD E,viewport_y_min
+                    LD H,D
+                    LD L,viewport_y_max
+                    CALL draw2D.draw_vertical_line
+
+                    LD D,viewport_x_max-1
+                    LD E,viewport_y_min
+                    LD H,D
+                    LD L,viewport_y_max
+                    CALL draw2D.draw_vertical_line
+
+                    RET
+
+
+rotate
+; A - angle (counter-clock-wise)
+; IXL - x
+; IYL - y
+; Output:
+; IXH = +x*cos(angle) + y*sin(angle)
+; IYH = -x*sin(angle) + y*cos(angle)
+; Preserves IXL, IYL, ALL'.
+                    LD IYH,A ; IYH = angle
+
+                    LD B,IXL ; x
+                    CALL mul_cosA_sB_HL
+                    PUSH HL
+
+                    LD A,IYH ; angle
+                    ADD 128 ; angle + pi
+                    LD B,IYL ; y
+                    CALL mul_sinA_sB_HL                 
+
+                    POP DE
+                    ADD HL,DE
+                    LD A,H
+                    LD IXH,A ; IXH = +x*cos(angle) + y*sin(angle)
+
+                    LD A,IYH ; angle
+                    LD B,IXL ; x
+                    CALL mul_sinA_sB_HL
+                    PUSH HL
+
+                    LD A,IYH ; angle
+                    LD B,IYL ; y
+                    CALL mul_cosA_sB_HL
+
+                    POP DE
+                    ADD HL,DE
+                    LD A,H
+                    LD IYH,A ; IYH = -x*sin(angle) + y*cos(angle)
+
+                    RET
+
+
+process_vertex
+; [IXL, IYL, A] - [x, y, z]
+; Output:
+; [HL, HL'] = project([x_pos, y_pos, z_pos] + rotate(rotate(rotate([x, y, z], OZ, roll), OX, pitch), OY, yaw))
+; Preserves NOTHING.
+                    EX AF,AF'
+                    LD A,0
+.roll               EQU $-1
+                    CALL rotate
+                    ; [IXH, IYH, A'] = rotate([x, y, z], OZ, roll)
+
+                    LD A,IXH
+                    EX AF,AF'
+                    LD IXL,A
+                    LD IYL,IYH
+                    LD A,0
+.pitch              EQU $-1
+                    CALL rotate
+                    ; [A', IYH, IXH] = rotate(rotate([x, y, z], OZ, roll), OX, pitch)
+
+                    LD A,IYH
+                    EX AF,AF'
+                    LD IYL,A
+                    LD IXL,IXH
+                    LD A,0
+.yaw                EQU $-1
+                    NEG ; because x & z are swapped
+                    CALL rotate
+                    ; [IYH, A', IXH] = [x_rotated, y_rotated, z_rotated] = rotate(rotate(rotate([x, y, z], OZ, roll), OX, pitch), OY, yaw)
+
+                    LD A,IXH
+                    LD L,A
+                    ADD A
+                    SBC A
+                    LD H,A
+                    LD BC,0
+.z_pos              EQU $-2
+                    ADD HL,BC
+                    EX DE,HL
+                    ; DE = z_world = z_pos + z_rotated
+
+                    PUSH DE ; saving z_world
+
+                    EX AF,AF'
+                    LD L,A
+                    ADD A
+                    SBC A
+                    LD H,A
+                    LD BC,0
+.y_pos              EQU $-2
+                    ADD HL,BC
+                    ; HL = y_world = y_pos + y_rotated
+
+                    CALL draw3D.project_y
+                    EXX
+                    ; HL' = y_screen = project(y_world, z_world)
+
+                    POP DE ; restoring z_world
+
+                    LD A,IYH
+                    LD L,A
+                    ADD A
+                    SBC A
+                    LD H,A
+                    LD BC,0
+.x_pos              EQU $-2
+                    ADD HL,BC
+                    ; HL = x_world = x_pos + x_rotated
+
+                    JP draw3D.project_x ; HL = x_screen = project(x_world, z_world)
+
 
                     ALIGN 8
-
-.chess_wide         BYTE %11001100
-                    BYTE %11001100
-                    BYTE %00110011
-                    BYTE %00110011
+chess_wide
                     BYTE %11001100
                     BYTE %11001100
                     BYTE %00110011
                     BYTE %00110011
-
-.rabica             BYTE %00011000
+                    BYTE %11001100
+                    BYTE %11001100
+                    BYTE %00110011
+                    BYTE %00110011
+rabica
+                    BYTE %00011000
                     BYTE %00100100
                     BYTE %01000010
                     BYTE %10000001
@@ -93,31 +286,8 @@ draw
                     BYTE %00100100
                     BYTE %00011000
 
-.draw_viewport
-                    LD D,.x_min
-                    LD E,.y_min+1
-                    LD H,.x_max
-                    LD L,E
-                    CALL draw2D.draw_horizontal_line
 
-                    LD D,.x_min
-                    LD E,.y_max-1
-                    LD H,.x_max
-                    LD L,E
-                    CALL draw2D.draw_horizontal_line
+buffer              BLOCK 4 * 8
 
-                    LD D,.x_min+1
-                    LD E,.y_min
-                    LD H,D
-                    LD L,.y_max
-                    CALL draw2D.draw_vertical_line
-
-                    LD D,.x_max-1
-                    LD E,.y_min
-                    LD H,D
-                    LD L,.y_max
-                    CALL draw2D.draw_vertical_line
-
-                    RET
-
+                    ENDMODULE
                     milestone

@@ -163,10 +163,10 @@ draw_polygon
                     EXX
                     POP DE
 
-                    LD A,D
-                    AND E
-                    INC A
-                    JP NZ,.loop ; if DE <> -1 jump
+                    LD A,#80
+                    SUB D
+                    OR E
+                    JP NZ,.loop ; if DE <> #8000 jump
 
                     LD BC,0
 .last_x             EQU $-2
@@ -199,7 +199,7 @@ draw_polygon
                         ; |(xxx1, yyy1) - (xxx2, yyy2)| = |(xx1, yy1) - (xx2, yy2)| x [x_min, x_max] = |(C, E) - (H, L)|
 
                         ; Testing if |(xx1, yy1) - (xx2, yy2)| crosses appropriate viewport border - LEFT (x_min) if y1 < y2 or RIGHT (x_max) if y1 > y2.
-                        LD A,0
+                        if_then_else dir_y>0, <LD A,0>, <LD A,255>
                         if_then_else dir_y>0, _draw2DEX_viewport_add_addr_1 "xmin", _draw2DEX_viewport_add_addr_1 "xmax"
                         CP C
                         JR Z,.hit_begin
@@ -243,7 +243,7 @@ draw_polygon
                         if_then_else dir_y>0, RET NZ, RET Z ; If LEFT/RIGHT polygon`s border is RIGHT/LEFT from viewport - just ignore it.
 .outside_ok
                         ; Adding |(x_min/x_max, yy2) - (x_min/x_max, yy1)|.
-                        LD D,0
+                        if_then_else dir_y>0, <LD D,0>, <LD D,255>
                         if_then_else dir_y>0, _draw2DEX_viewport_add_addr_1 "xmin", _draw2DEX_viewport_add_addr_1 "xmax"
                         LD E,IXH
                         LD H,D
@@ -280,7 +280,6 @@ _clip_line_y
 ;     CF = 1
 ;     A == 0 if max(y1, y2) < y_min
 ;     A <> 0 if min(y1, y2) > y_max
-;     BC, DE, BC', DE' preserved
 ; Preserves IX, IY.
                     MACRO _draw2DEX_clip_line_y_test exit_path, ge_0_and_lt_min, gt_max_and_le_255, lt_0_or_gt_255
                     ; Tests y against y_min and y_max and does following:
@@ -451,7 +450,7 @@ _clip_line_y
                     ; BC, DE   - x2, y2
                     ; BC', DE' - x1, y1
                     ; Note that line is inverted!
-                    ; Special - makes RET!
+                    ; Special - returns!
                     ; Preserves IX, IY.
 .restart
                         ; Calculating dy = y2 - y1, dx = x1 - x2 (if y1 < y2) or dy = y1 - y2, dx = x2 - x1 (if y1 > y2).
@@ -705,7 +704,6 @@ _clip_line_x
 ;     CF = 1
 ;     A == 0 if max(x1, x2) < x_min
 ;     A <> 0 if min(x1, x2) > x_max
-;     BC, DE, BC', DE' preserved
 ; Preserves IX, IY.
                     MACRO _draw2DEX_clip_line_x_test exit_path, ge_0_and_lt_min, gt_max_and_le_255, lt_0_or_gt_255
                     ; Tests x against x_min and x_max and does following:
@@ -896,7 +894,7 @@ _clip_line_x
                     ; BC', DE' - x1, y1
                     ; Requires D = D' = 0.
                     ; Note that line is inverted!
-                    ; Special - makes RET!
+                    ; Special - returns!
                     ; Preserves IX, IY.
 .restart
                         ; Calculating dx = x2 - x1, dy = y1 - y2 (if x1 < x2) or dx = x1 - x2, dx = y2 - y1 (if x1 > x2).
@@ -1137,11 +1135,11 @@ _clip_line_x
 
 
 set_viewport
-; DE - x_max, x_min
-; HL - y_max, y_min
+; DE - x_min, y_min
+; HL - x_max, y_max
 ; Preserves ALL except A.
                     LUA ALLPASS
-                        borders = { E = "x_min", D = "x_max", L = "y_min", H = "y_max" }
+                        borders = { D = "x_min", E = "y_min", H = "x_max", L = "y_max" }
 
                         for reg, border in pairs(borders) do
                             if sj.get_define("draw2DEX_viewport_no_"..border) == nil
